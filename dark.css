@@ -1,0 +1,95 @@
+body{
+    background-color: #242429;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+label{
+    color: white;
+    user-select: none;
+}
+
+button, .icon_text_button {
+    border-width: 2px;
+    border-color: black;
+    
+    color: white;
+    background-color: rgb(57, 46, 211);
+    border-radius: 4px;
+    padding: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
+button:hover{
+    box-shadow: 0 0 8px black;
+}
+
+/***********************************************************************************************************************
+
+***********************************************************************************************************************/
+
+#drop_zone{
+    padding: 8px;
+    background-color: #1c1c1c;
+    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='%23FFFFFF80' stroke-width='3' rx='8' ry='8' stroke-dasharray='16%2c 12' stroke-dashoffset='43' stroke-linecap='round'/%3e%3c/svg%3e");
+    border-radius: 8px;
+}
+
+.icon_text_button{
+    font-size: 1em;
+    background-repeat: no-repeat;
+    background-position-y: center;
+    background-position-x: 4px;
+    padding: 8px;
+    padding-left: 32px;
+}
+
+.client_background{
+    background-color: #444444;
+    padding: 12px 0px 12px 0px;
+    border-radius: 8px;
+    overflow: auto;
+    margin-bottom: 1.5em;
+    filter: drop-shadow(0px 0px 4px black);
+}
+
+.image_button{
+    width: 24px;
+    height: 24px;
+    padding: 2px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.image_button:hover{
+    filter: drop-shadow(0px 0px 4px black);
+    cursor: pointer;
+}
+
+.loader {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    animation: spin 1s linear infinite;
+  }
+
+.loader_large {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    animation: spin 1.5s linear infinite;
+}
+  
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.file_grid_item:hover{
+    cursor: pointer;
+}
