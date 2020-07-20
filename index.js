@@ -1,26 +1,56 @@
 'use strict';
 
-class NeuralNetwork extends HTMLElement{
+class NeuralNetwork{
+
+    constructor(layer_sizes){
+        this._layer_sizes = layer_sizes;
+        this._layers = [];
+    }
+
+    initialize(weights, biases){
+        this._layers.clear();
+        for (let i = 0; i < weights.length; i++){
+            this._layers.push({'weights': weights[i], 'biases': biases[i]});
+        }
+    }
+}
+
+class NeuralNetworkElement extends HTMLElement{
+
+    static INPUT_LAYER_COLOR = 'red';
+    static HIDDEN_LAYER_COLOR = 'blue';
+    static OUTPUT_LAYER_COLOR = 'green';
 
     constructor(){
         super();
-        this._layer_sizes = [2, 3, 3, 2];
-        this._layer_colors = ['red', 'blue', 'blue', 'green'];
+        this._layer_sizes = [2, 5, 3, 2];
     }
 
     connectedCallback(){
         console.log('connected')
 
+        //Cant do this in constructor because chrome error "the result must not have attributes" when creating object from js.
+        this._applyStyle();
+    }
+
+    addLayer(index){
+
+    }
+
+    _refresh(){
+        this.innerHTML = '';
         this._applyStyle();
     }
 
     _applyStyle(){
+        console.log('APPLY');
         this.style.display = 'flex';
         this.style.justifyContent = 'center';
         this.style.gap = '20px';
 
         for (let i = 0; i < this._layer_sizes.length; i++){
             const layer_div = document.createElement('div');
+            this.appendChild(layer_div);
             layer_div.setAttribute('id', `layer_${i}`);
             layer_div.style.display = 'flex';
             layer_div.style.flexDirection = 'column';
@@ -39,8 +69,18 @@ class NeuralNetwork extends HTMLElement{
             layer_name_label.style.textAlign = 'center';
             layer_div.appendChild(layer_name_label);
 
+            let layer_color;
+            if (i == 0){
+                layer_color = NeuralNetworkElement.INPUT_LAYER_COLOR;
+            }else if (i == this._layer_sizes.length - 1){
+                layer_color = NeuralNetworkElement.HIDDEN_LAYER_COLOR;
+            }else{
+                layer_color = NeuralNetworkElement.OUTPUT_LAYER_COLOR;
+            }
+
             //Neurons
             const neurons_div = document.createElement('div');
+            layer_div.appendChild(neurons_div);
             neurons_div.style.flexGrow = '1';
             neurons_div.style.display = 'flex';
             neurons_div.style.flexDirection = 'column';
@@ -48,15 +88,52 @@ class NeuralNetwork extends HTMLElement{
             neurons_div.style.justifyContent = 'center';
             neurons_div.style.gap = '20px';
             for (let j = 0; j < this._layer_sizes[i]; j++){
-                const neuron = document.createElement('svg');
-                neuron.setAttribute('id', `${layer_div.id}_neuron_${j}`);
-                neuron.style.zIndex = 2;
-                neuron.innerHTML = `<svg height="50" width="50"> <circle cx="25" cy="25" r="20" stroke="white" stroke-width="1" fill="${this._layer_colors[i]}" /></svg>`
+                const neuron = document.createElement('div');
                 neurons_div.appendChild(neuron);
-            }
-            layer_div.appendChild(neurons_div);
+                neuron.setAttribute('id', `${layer_div.id}_neuron_${j}`);
+                neuron.style.position = 'relative';
+                neuron.style.zIndex = 2;
+                neuron.innerHTML = `<svg height="50" width="50" style="display: block;"> <circle cx="25" cy="25" r="20" stroke="white" stroke-width="1" fill="${layer_color}" /></svg>`
 
-            this.appendChild(layer_div);
+                const label = document.createElement('label');
+                label.setAttribute('id', `${neuron.id}_label`);
+                neuron.appendChild(label);
+                label.style.position = 'absolute';
+                label.innerHTML = '0.54';
+                label.style.top = `${(neuron.clientHeight - label.clientHeight) / 2}px`;
+                label.style.left = `${(neuron.clientWidth - label.clientWidth) / 2}px`;
+            }
+
+            //Controls
+            const controls_div = document.createElement('div');
+            layer_div.appendChild(controls_div);
+            controls_div.style.display = 'flex';
+            controls_div.style.marginTop = '16px';
+            controls_div.style.justifyContent = 'center';
+            controls_div.style.alignItems = 'center';
+            controls_div.style.gap = '8px';
+            
+            const remove_neuron_button = document.createElement('button');
+            controls_div.appendChild(remove_neuron_button);
+            remove_neuron_button.innerHTML = '-';
+            remove_neuron_button.addEventListener('click', (event) => {
+                if (this._layer_sizes[i] > 1){
+                    this._layer_sizes[i] -= 1;
+                    this._refresh();
+                }
+            });
+
+            const neuron_count_label = document.createElement('label');
+            controls_div.appendChild(neuron_count_label);
+            neuron_count_label.innerHTML = `${this._layer_sizes[i]}`;
+
+            const add_neuron_button = document.createElement('button');
+            controls_div.appendChild(add_neuron_button);
+            add_neuron_button.innerHTML = '+';
+            add_neuron_button.addEventListener('click', (event) => {
+                this._layer_sizes[i] += 1;
+                this._refresh();
+            });
         }
 
         const PREF_GAP = this.getBoundingClientRect().width / (this._layer_sizes.length - 1) - 100;
@@ -100,11 +177,12 @@ class NeuralNetwork extends HTMLElement{
                     connection_label.hidden = true;
 
                     const connection = document.createElement('div');
+                    connection.setAttribute('id', `connection_${src_neuron.id}_${dst_neuron.id}`)
                     connection.style.position = 'absolute';
                     connection.style.width = `${distance}px`;
                     connection.style.height = '1px';
                     connection.style.backgroundColor = 'gray';
-                    connection.style.top = `${center_y - (4 / 2)}px`; //-4 for line thickness
+                    connection.style.top = `${center_y - (1 / 2)}px`; //-1 for line thickness
                     connection.style.left = `${center_x - (distance / 2)}px`;
                     connection.style.transform = `rotate(${angle}rad)`;
                     connection.addEventListener('mouseenter', (event) => {
@@ -145,32 +223,43 @@ class NeuralNetwork extends HTMLElement{
                 neuron.addEventListener('mouseenter', (event) => {
                     const src_neurons = getSourceNeurons(i);
                     for (let k = 0; k < src_neurons.length; k++){
+                        const connection = document.getElementById(`connection_${src_neurons[k].id}_${neuron.id}`);
+                        connection.style.backgroundColor = 'white';
+                        connection.style.zIndex = 1;
                         const connection_label = document.getElementById(`weight_label_${src_neurons[k].id}_${neuron.id}`);
                         connection_label.hidden = false;
                     }
-                    const dst_neurons = getDestinationNeurons(i);
+                    /* const dst_neurons = getDestinationNeurons(i);
                     for (let k = 0; k < dst_neurons.length; k++){
+                        const connection = document.getElementById(`connection_${neuron.id}_${dst_neurons[k].id}`);
+                        connection.style.backgroundColor = 'white';
+                        connection.style.zIndex = 1;
                         const connection_label = document.getElementById(`weight_label_${neuron.id}_${dst_neurons[k].id}`);
                         connection_label.hidden = false;
-                    }
+                    } */
                 });
                 neuron.addEventListener('mouseleave', (event) => {
                     const src_neurons = getSourceNeurons(i);
                     for (let k = 0; k < src_neurons.length; k++){
+                        const connection = document.getElementById(`connection_${src_neurons[k].id}_${neuron.id}`);
+                        connection.style.backgroundColor = 'gray';
+                        connection.style.zIndex = 0;
                         const connection_label = document.getElementById(`weight_label_${src_neurons[k].id}_${neuron.id}`);
                         connection_label.hidden = true;
                     }
-                    const dst_neurons = getDestinationNeurons(i);
+                    /* const dst_neurons = getDestinationNeurons(i);
                     for (let k = 0; k < dst_neurons.length; k++){
+                        const connection = document.getElementById(`connection_${neuron.id}_${dst_neurons[k].id}`);
+                        connection.style.backgroundColor = 'gray';
+                        connection.style.zIndex = 0;
                         const connection_label = document.getElementById(`weight_label_${neuron.id}_${dst_neurons[k].id}`);
                         connection_label.hidden = true;
-                    }
+                    } */
                 });
             }
         }
     }
 }
 
-customElements.define('neural-network', NeuralNetwork);
-let e = document.createElement('neural-network');
-document.body.appendChild(e);
+customElements.define('neural-network', NeuralNetworkElement);
+const neural_network = document.getElementById('neural_network');
