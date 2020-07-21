@@ -8,9 +8,25 @@ class NeuralNetwork{
     }
 
     initialize(weights, biases){
-        this._layers.clear();
+        this._layers = [];
         for (let i = 0; i < weights.length; i++){
             this._layers.push({'weights': weights[i], 'biases': biases[i]});
+        }
+    }
+
+    initializeRandomly(){
+        this._layers = [];
+        for (let i = 1; i < this._layer_sizes.length; i++){
+            const weights = [];
+            const biases = []
+            for (let j = 0; j < this._layer_sizes[i]; j++){
+                weights[j] = [];
+                biases[j] = Math.random();
+                for (let k = 0; k < this._layer_sizes[i - 1]; k++){
+                    weights[j].push(Math.random());
+                }
+            }
+            this._layers.push({'weights': weights, 'biases': biases});
         }
     }
 }
@@ -37,7 +53,13 @@ class NeuralNetworkElement extends HTMLElement{
 
     constructor(){
         super();
-        this._layer_sizes = [2, 5, 3, 2];
+        this._neuron_details_div = document.getElementById('neuron_details_div');
+        this._neural_network = undefined;
+    }
+
+    setNeuralNetwork(neural_network){
+        this._neural_network = neural_network;
+        this._refresh();
     }
 
     connectedCallback(){
@@ -47,21 +69,20 @@ class NeuralNetworkElement extends HTMLElement{
         this._applyStyle();
     }
 
-    addLayer(index){
-
-    }
-
     _refresh(){
         this.innerHTML = '';
         this._applyStyle();
     }
 
     _applyStyle(){
-        console.log('APPLY');
         this.style.display = 'flex';
         this.style.justifyContent = 'space-around';
 
-        for (let i = 0; i < this._layer_sizes.length; i++){
+        if (this._neural_network === undefined){
+            return;
+        }
+
+        for (let i = 0; i < this._neural_network._layer_sizes.length; i++){
             const layer_div = document.createElement('div');
             this.appendChild(layer_div);
             layer_div.setAttribute('id', `layer_${i}`);
@@ -73,7 +94,7 @@ class NeuralNetworkElement extends HTMLElement{
             const layer_name_label = document.createElement('label');
             if (i == 0){
                 layer_name_label.innerHTML = `Input`;
-            }else if (i == this._layer_sizes.length - 1){
+            }else if (i == this._neural_network._layer_sizes.length - 1){
                 layer_name_label.innerHTML = `Output`;
             }else{
                 layer_name_label.innerHTML = `Layer ${i}`;
@@ -85,7 +106,7 @@ class NeuralNetworkElement extends HTMLElement{
             let layer_color;
             if (i == 0){
                 layer_color = NeuralNetworkElement.INPUT_LAYER_COLOR;
-            }else if (i == this._layer_sizes.length - 1){
+            }else if (i == this._neural_network._layer_sizes.length - 1){
                 layer_color = NeuralNetworkElement.HIDDEN_LAYER_COLOR;
             }else{
                 layer_color = NeuralNetworkElement.OUTPUT_LAYER_COLOR;
@@ -100,7 +121,7 @@ class NeuralNetworkElement extends HTMLElement{
             neurons_div.style.alignItems = 'center';
             neurons_div.style.justifyContent = 'center';
             neurons_div.style.gap = '20px';
-            for (let j = 0; j < this._layer_sizes[i]; j++){
+            for (let j = 0; j < this._neural_network._layer_sizes[i]; j++){
                 const neuron = document.createElement('div');
                 neurons_div.appendChild(neuron);
                 neuron.setAttribute('id', `${layer_div.id}_neuron_${j}`);
@@ -138,41 +159,43 @@ class NeuralNetworkElement extends HTMLElement{
             neuron_controls_div.appendChild(remove_neuron_button);
             remove_neuron_button.innerHTML = '-';
             remove_neuron_button.addEventListener('click', (event) => {
-                if (this._layer_sizes[i] > 1){
-                    this._layer_sizes[i] -= 1;
+                if (this._neural_network._layer_sizes[i] > 1){
+                    this._neural_network._layer_sizes[i] -= 1;
+                    this._neural_network.initializeRandomly();
                     this._refresh();
                 }
             });
 
             const neuron_count_label = document.createElement('label');
             neuron_controls_div.appendChild(neuron_count_label);
-            neuron_count_label.innerHTML = `${this._layer_sizes[i]}`;
+            neuron_count_label.innerHTML = `${this._neural_network._layer_sizes[i]}`;
 
             const add_neuron_button = document.createElement('button');
             neuron_controls_div.appendChild(add_neuron_button);
             add_neuron_button.innerHTML = '+';
             add_neuron_button.addEventListener('click', (event) => {
-                this._layer_sizes[i] += 1;
+                this._neural_network._layer_sizes[i] += 1;
+                this._neural_network.initializeRandomly();
                 this._refresh();
             });
-
           
             //Delete layer button
             const delete_layer_button = document.createElement('button');
             controls_div.appendChild(delete_layer_button);
             delete_layer_button.innerHTML = 'Delete';
             delete_layer_button.style.marginTop = '4px';
-            if (i == 0 || i == this._layer_sizes.length - 1){
+            if (i == 0 || i == this._neural_network._layer_sizes.length - 1){
                 delete_layer_button.style.visibility = 'hidden';
             }
             delete_layer_button.addEventListener('click', (event) => {
-                this._layer_sizes.splice(i, 1);
+                this._neural_network._layer_sizes.splice(i, 1);
+                this._neural_network.initializeRandomly();
                 this._refresh();
             });
         }
 
         //Add layer buttons
-        for (let i = 0; i < this._layer_sizes.length - 1; i++){
+        for (let i = 0; i < this._neural_network._layer_sizes.length - 1; i++){
             const layer_div = document.getElementById(`layer_${i}`);
             const next_layer_div = document.getElementById(`layer_${i + 1}`);
             const controls_div = document.getElementById(`${layer_div.id}_controls`);
@@ -185,18 +208,19 @@ class NeuralNetworkElement extends HTMLElement{
             const distance = next_layer_div.getBoundingClientRect().left - layer_div.getBoundingClientRect().left;
             add_layer_button.style.left = `${(controls_div.clientWidth + distance - add_layer_button.clientWidth) / 2}px`;
             add_layer_button.addEventListener('click', (event) => {
-                this._layer_sizes.splice(i + 1, 0, 1);
+                this._neural_network._layer_sizes.splice(i + 1, 0, 1);
+                this._neural_network.initializeRandomly();
                 this._refresh();
             });
         }
 
         //Create connections
-        for (let i = 1; i < this._layer_sizes.length; i++){
+        for (let i = 1; i < this._neural_network._layer_sizes.length; i++){
             const src_layer_div = document.getElementById(`layer_${i - 1}`);
             const dst_layer_div = document.getElementById(`layer_${i}`);
-            for (let j = 0; j < this._layer_sizes[i - 1]; j++){
+            for (let j = 0; j < this._neural_network._layer_sizes[i - 1]; j++){
                 const src_neuron = document.getElementById(`${src_layer_div.id}_neuron_${j}`);
-                for (let k = 0; k < this._layer_sizes[i]; k++){
+                for (let k = 0; k < this._neural_network._layer_sizes[i]; k++){
                     const dst_neuron = document.getElementById(`${dst_layer_div.id}_neuron_${k}`);
 
                     const dst_bounds = dst_neuron.getBoundingClientRect();
@@ -215,7 +239,7 @@ class NeuralNetworkElement extends HTMLElement{
 
                     const connection_label = document.createElement('label');
                     connection_label.setAttribute('id', `weight_label_${src_neuron.id}_${dst_neuron.id}`);
-                    connection_label.innerHTML = '0.35';
+                    connection_label.innerHTML = `${this._neural_network._layers[i - 1].weights[k][j].toFixed(4)}`;
                     connection_label.style.padding = '4px';
                     connection_label.style.borderRadius = '4px';
                     connection_label.style.zIndex = 2;
@@ -255,21 +279,17 @@ class NeuralNetworkElement extends HTMLElement{
             layer_index--;
             const neurons = [];
             if (layer_index >= 0){
-                for (let i = 0; i < this._layer_sizes[layer_index]; i++){
+                for (let i = 0; i < this._neural_network._layer_sizes[layer_index]; i++){
                     neurons.push(document.getElementById(`layer_${layer_index}_neuron_${i}`));
                 }
             }
             return neurons;
         }
 
-        function getDestinationNeurons(layer_index){
-            return getSourceNeurons(layer_index + 2);
-        }
-
         //Apply mouse over for neurons
-        for (let i = 0; i < this._layer_sizes.length; i++){
+        for (let i = 0; i < this._neural_network._layer_sizes.length; i++){
             const layer_div = document.getElementById(`layer_${i}`);
-            for (let j = 0; j < this._layer_sizes[i]; j++){
+            for (let j = 0; j < this._neural_network._layer_sizes[i]; j++){
                 const neuron = document.getElementById(`${layer_div.id}_neuron_${j}`);
                 neuron.addEventListener('mouseenter', (event) => {
                     const src_neurons = getSourceNeurons(i);
@@ -280,14 +300,6 @@ class NeuralNetworkElement extends HTMLElement{
                         const connection_label = document.getElementById(`weight_label_${src_neurons[k].id}_${neuron.id}`);
                         connection_label.hidden = false;
                     }
-                    /* const dst_neurons = getDestinationNeurons(i);
-                    for (let k = 0; k < dst_neurons.length; k++){
-                        const connection = document.getElementById(`connection_${neuron.id}_${dst_neurons[k].id}`);
-                        connection.style.backgroundColor = 'white';
-                        connection.style.zIndex = 1;
-                        const connection_label = document.getElementById(`weight_label_${neuron.id}_${dst_neurons[k].id}`);
-                        connection_label.hidden = false;
-                    } */
                 });
                 neuron.addEventListener('mouseleave', (event) => {
                     const src_neurons = getSourceNeurons(i);
@@ -298,14 +310,6 @@ class NeuralNetworkElement extends HTMLElement{
                         const connection_label = document.getElementById(`weight_label_${src_neurons[k].id}_${neuron.id}`);
                         connection_label.hidden = true;
                     }
-                    /* const dst_neurons = getDestinationNeurons(i);
-                    for (let k = 0; k < dst_neurons.length; k++){
-                        const connection = document.getElementById(`connection_${neuron.id}_${dst_neurons[k].id}`);
-                        connection.style.backgroundColor = 'gray';
-                        connection.style.zIndex = 0;
-                        const connection_label = document.getElementById(`weight_label_${neuron.id}_${dst_neurons[k].id}`);
-                        connection_label.hidden = true;
-                    } */
                 });
             }
         }
@@ -313,4 +317,10 @@ class NeuralNetworkElement extends HTMLElement{
 }
 
 customElements.define('neural-network', NeuralNetworkElement);
-const neural_network = document.getElementById('neural_network');
+
+const neural_network_element = document.getElementById('neural_network');
+
+const neural_network = new NeuralNetwork([2, 5, 3, 2]);
+neural_network.initializeRandomly();
+
+neural_network_element.setNeuralNetwork(neural_network);
