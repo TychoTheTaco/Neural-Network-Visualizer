@@ -5,17 +5,19 @@ class NeuralNetwork{
     constructor(layer_sizes){
         this._layer_sizes = layer_sizes;
         this._layers = [];
+        this._inputs = [];
     }
 
     initialize(weights, biases){
         this._layers = [];
         for (let i = 0; i < weights.length; i++){
-            this._layers.push({'weights': weights[i], 'biases': biases[i]});
+            this._layers.push({'weights': weights[i], 'biases': biases[i], 'values': []});
         }
     }
 
     initializeRandomly(){
-        this._layers = [];
+        const w = [];
+        const b = [];
         for (let i = 1; i < this._layer_sizes.length; i++){
             const weights = [];
             const biases = []
@@ -26,24 +28,34 @@ class NeuralNetwork{
                     weights[j].push(Math.random());
                 }
             }
-            this._layers.push({'weights': weights, 'biases': biases});
+            w.push(weights);
+            b.push(biases);
+            //this._layers.push({'weights': weights, 'biases': biases, 'values': values});
         }
+        this.initialize(w, b);
+    }
+
+    setInputs(inputs){
+        this._inputs = inputs;
+    }
+
+    trainStep(){
+
     }
 }
 
-var cumOffset = function(element) {
-    var top = 0, left = 0;
-    do {
-        top += element.offsetTop  || 0;
-        left += element.offsetLeft || 0;
-        element = element.offsetParent;
-    } while(element);
-
-    return {
-        top: top,
-        left: left
-    };
-};
+function format(x, precision){
+    let s = x.toFixed(precision);
+    console.log('S: ', s);
+    for (let i = s.length - 1; i > 0; i--){
+        if (s[i] == '0'){
+            s = s.slice(0, -1);
+        }else{
+            break;
+        }
+    }
+    return s;
+}
 
 class NeuralNetworkElement extends HTMLElement{
 
@@ -63,8 +75,6 @@ class NeuralNetworkElement extends HTMLElement{
     }
 
     connectedCallback(){
-        console.log('connected')
-
         //Cant do this in constructor because chrome error "the result must not have attributes" when creating object from js.
         this._applyStyle();
     }
@@ -133,7 +143,17 @@ class NeuralNetworkElement extends HTMLElement{
                 label.setAttribute('id', `${neuron.id}_label`);
                 neuron.appendChild(label);
                 label.style.position = 'absolute';
-                label.innerHTML = '0.54';
+                console.log(this._neural_network._layers[i - 1]);
+                if (i == 0){
+                    label.innerHTML = `${this._neural_network._inputs[j].toFixed(2)}`;
+                }else{
+                    const value = this._neural_network._layers[i - 1].values[j];
+                    if (value === undefined){
+                        label.innerHTML = `?`;
+                    }else{
+                        label.innerHTML = `${format(value, 4)}`;
+                    }
+                }
                 label.style.top = `${(neuron.clientHeight - label.clientHeight) / 2}px`;
                 label.style.left = `${(neuron.clientWidth - label.clientWidth) / 2}px`;
             }
@@ -239,7 +259,7 @@ class NeuralNetworkElement extends HTMLElement{
 
                     const connection_label = document.createElement('label');
                     connection_label.setAttribute('id', `weight_label_${src_neuron.id}_${dst_neuron.id}`);
-                    connection_label.innerHTML = `${this._neural_network._layers[i - 1].weights[k][j].toFixed(4)}`;
+                    connection_label.innerHTML = `${format(this._neural_network._layers[i - 1].weights[k][j], 4)}`;
                     connection_label.style.padding = '4px';
                     connection_label.style.borderRadius = '4px';
                     connection_label.style.zIndex = 2;
@@ -287,7 +307,7 @@ class NeuralNetworkElement extends HTMLElement{
         }
 
         //Apply mouse over for neurons
-        for (let i = 0; i < this._neural_network._layer_sizes.length; i++){
+        for (let i = 1; i < this._neural_network._layer_sizes.length; i++){
             const layer_div = document.getElementById(`layer_${i}`);
             for (let j = 0; j < this._neural_network._layer_sizes[i]; j++){
                 const neuron = document.getElementById(`${layer_div.id}_neuron_${j}`);
@@ -300,6 +320,24 @@ class NeuralNetworkElement extends HTMLElement{
                         const connection_label = document.getElementById(`weight_label_${src_neurons[k].id}_${neuron.id}`);
                         connection_label.hidden = false;
                     }
+
+                    //Neuron details
+                    if (this._neuron_details_div != undefined){
+                        this._neuron_details_div.innerHTML = `Layer ${i}, Neuron ${j}<br><br>`;
+
+                        let step_1_equation_string = 'value = ';
+                        for (let k = 0; k < src_neurons.length; k++){
+                            let inputs;
+                            if (i == 1){
+                                inputs = this._neural_network._inputs;
+                            }else{
+                                inputs = this._neural_network._layers[i - 1].weights[j]
+                            }
+                            step_1_equation_string += `${format(inputs[k], 4)} * ${format(this._neural_network._layers[i - 1].weights[j][k], 4)} + `;
+                        }
+                        step_1_equation_string += `${format(this._neural_network._layers[i - 1].biases[j], 4)}`
+                        this._neuron_details_div.innerHTML += step_1_equation_string;
+                    }
                 });
                 neuron.addEventListener('mouseleave', (event) => {
                     const src_neurons = getSourceNeurons(i);
@@ -309,6 +347,11 @@ class NeuralNetworkElement extends HTMLElement{
                         connection.style.zIndex = 0;
                         const connection_label = document.getElementById(`weight_label_${src_neurons[k].id}_${neuron.id}`);
                         connection_label.hidden = true;
+
+                        //Neuron details
+                        if (this._neuron_details_div != undefined){
+                            this._neuron_details_div.innerHTML = '';
+                        }
                     }
                 });
             }
@@ -320,7 +363,25 @@ customElements.define('neural-network', NeuralNetworkElement);
 
 const neural_network_element = document.getElementById('neural_network');
 
-const neural_network = new NeuralNetwork([2, 5, 3, 2]);
-neural_network.initializeRandomly();
+const neural_network = new NeuralNetwork([2, 2, 2]);
+//neural_network.initializeRandomly();
+neural_network.initialize([
+    [
+        [0.15, 0.2],
+        [0.25, 0.3]
+    ],
+    [
+        [0.4, 0.45],
+        [0.5, 0.55]
+    ]
+], [
+    [
+        0.35, 0.35
+    ],
+    [
+        0.6, 0.6
+    ]
+]);
+neural_network.setInputs([0.05, 0.1]);
 
 neural_network_element.setNeuralNetwork(neural_network);
