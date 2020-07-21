@@ -30,7 +30,8 @@ class NeuralNetwork{
         this._layer_sizes = layer_sizes;
         this._layers = [];
         this._inputs = [];
-        this._step = 0;
+        this._step_index = 0;
+        this._step_id = 'feed_forward';
     }
 
     initialize(weights, biases){
@@ -63,12 +64,28 @@ class NeuralNetwork{
         this._inputs = inputs;
     }
 
-    trainStep(){
-        if (this._step == 0){
-            this._prev_output = this._inputs;
+    _setStep(step_id){
+        this._step_id = step_id;
+        this._step_index = 0;
+    }
+
+    getStepId(){
+        return this._step_id;
+    }
+
+    step(){
+        if (this._step_id == 'feed_forward'){
+            if (this._step_index == 0){
+                this._prev_output = this._inputs;
+            }
+            this._prev_output = this._feed(this._prev_output, this._step_index++);
+            console.log(this._prev_output);
+            if (this._step_index == this._layers.length){
+                this._setStep('calculate_loss');
+            }
+        }else if (this._step_id == 'calculate_loss'){
+
         }
-        this._prev_output = this._feed(this._prev_output, this._step++);
-        console.log(this._prev_output);
     }
 
     _feed(input, layer_index){
@@ -250,16 +267,18 @@ class NeuralNetworkElement extends HTMLElement{
                 label.setAttribute('id', `${neuron.id}_label`);
                 neuron.appendChild(label);
                 label.style.position = 'absolute';
+                let value = null;
                 if (i == 0){
-                    label.innerHTML = `${this._neural_network._inputs[j].toFixed(2)}`;
+                    value = this._neural_network._inputs[j];
                 }else{
-                    const value = this._neural_network._layers[i - 1].activations[j];
-                    if (value === undefined){
-                        label.innerHTML = `?`;
-                    }else{
-                        label.innerHTML = `${format(value, 2)}`;
-                    }
+                    value = this._neural_network._layers[i - 1].activations[j];
                 }
+                if (value == null){
+                    label.innerHTML = `?`;
+                }else{
+                    label.innerHTML = `${value.toFixed(2)}`;
+                }
+                
                 label.style.top = `${(neuron.clientHeight - label.clientHeight) / 2}px`;
                 label.style.left = `${(neuron.clientWidth - label.clientWidth) / 2}px`;
             }
@@ -418,27 +437,25 @@ class NeuralNetworkElement extends HTMLElement{
                 //Step 1
                 let step_1_general_equation_string = '\\(z = \\sum\\limits_{i = 0}^n (a_iw_i) + b_i\\)';
                 let step_1_equation_string = '\\(';
-                let step_1_result = 0;
+                let step_1_result = this._neural_network._layers[i - 1].values[j];
                 for (let k = 0; k < src_neurons.length; k++){
                     let inputs;
                     if (i == 1){
                         inputs = this._neural_network._inputs;
                     }else{
-                        inputs = this._neural_network._layers[i - 1].values[j]
+                        inputs = this._neural_network._layers[i - 2].activations;
                     }
                     const a = inputs[k];
                     const w = this._neural_network._layers[i - 1].weights[j][k];
-                    step_1_result += (a * w);
-                    step_1_equation_string += `${format(a, 4)} \\times ${format(w, 4)} + `;
+                    step_1_equation_string += `${format(a, 6)} \\times ${format(w, 6)} + `;
                 }
-                step_1_result += this._neural_network._layers[i - 1].biases[j];
-                step_1_equation_string += `${format(this._neural_network._layers[i - 1].biases[j], 4)}\\) `
-                step_1_equation_string = `${format(step_1_result, 4)} = ` + step_1_equation_string;
+                step_1_equation_string += `${format(this._neural_network._layers[i - 1].biases[j], 6)}\\) `
+                step_1_equation_string = `${format(step_1_result, 6)} = ` + step_1_equation_string;
               
                 //Step 2
                 let step_2_general_equation_string = '\\(a = \\sigma(z)\\)';
-                let step_2_result = sig(step_1_result);
-                let step_2_equation_string = `\\(${format(step_2_result, 4)} = \\sigma(${format(step_1_result, 4)})\\)`;
+                let step_2_result = this._neural_network._layers[i - 1].activations[j];
+                let step_2_equation_string = `\\(${format(step_2_result, 6)} = \\sigma(${format(step_1_result, 6)})\\)`;
 
                 const table = createTable([
                     ['Generic Equations', 'Plugged In'],
@@ -506,7 +523,8 @@ neural_network_element.setNeuralNetwork(neural_network);
 
 const single_step_button = document.getElementById('single_step_button');
 single_step_button.addEventListener('click', (event) => {
-    neural_network.trainStep();
+    document.getElementById('network_step_id').innerHTML = neural_network.getStepId() + ' step: ' + (neural_network._step_index + 1);
+    neural_network.step();
     neural_network_element._refresh();
 });
 
