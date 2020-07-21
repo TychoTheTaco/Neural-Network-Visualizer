@@ -15,6 +15,20 @@ class NeuralNetwork{
     }
 }
 
+var cumOffset = function(element) {
+    var top = 0, left = 0;
+    do {
+        top += element.offsetTop  || 0;
+        left += element.offsetLeft || 0;
+        element = element.offsetParent;
+    } while(element);
+
+    return {
+        top: top,
+        left: left
+    };
+};
+
 class NeuralNetworkElement extends HTMLElement{
 
     static INPUT_LAYER_COLOR = 'red';
@@ -45,8 +59,7 @@ class NeuralNetworkElement extends HTMLElement{
     _applyStyle(){
         console.log('APPLY');
         this.style.display = 'flex';
-        this.style.justifyContent = 'center';
-        this.style.gap = '20px';
+        this.style.justifyContent = 'space-around';
 
         for (let i = 0; i < this._layer_sizes.length; i++){
             const layer_div = document.createElement('div');
@@ -106,15 +119,23 @@ class NeuralNetworkElement extends HTMLElement{
 
             //Controls
             const controls_div = document.createElement('div');
+            controls_div.setAttribute('id', `${layer_div.id}_controls`);
             layer_div.appendChild(controls_div);
             controls_div.style.display = 'flex';
+            controls_div.style.flexDirection = 'column';
             controls_div.style.marginTop = '16px';
-            controls_div.style.justifyContent = 'center';
-            controls_div.style.alignItems = 'center';
-            controls_div.style.gap = '8px';
+            controls_div.style.position = 'relative';
+
+            const neuron_controls_div = document.createElement('div');
+            controls_div.appendChild(neuron_controls_div);
+            neuron_controls_div.style.position = 'relative';
+            neuron_controls_div.style.display = 'flex';
+            neuron_controls_div.style.justifyContent = 'center';
+            neuron_controls_div.style.alignItems = 'center';
+            neuron_controls_div.style.gap = '8px';
             
             const remove_neuron_button = document.createElement('button');
-            controls_div.appendChild(remove_neuron_button);
+            neuron_controls_div.appendChild(remove_neuron_button);
             remove_neuron_button.innerHTML = '-';
             remove_neuron_button.addEventListener('click', (event) => {
                 if (this._layer_sizes[i] > 1){
@@ -124,20 +145,50 @@ class NeuralNetworkElement extends HTMLElement{
             });
 
             const neuron_count_label = document.createElement('label');
-            controls_div.appendChild(neuron_count_label);
+            neuron_controls_div.appendChild(neuron_count_label);
             neuron_count_label.innerHTML = `${this._layer_sizes[i]}`;
 
             const add_neuron_button = document.createElement('button');
-            controls_div.appendChild(add_neuron_button);
+            neuron_controls_div.appendChild(add_neuron_button);
             add_neuron_button.innerHTML = '+';
             add_neuron_button.addEventListener('click', (event) => {
                 this._layer_sizes[i] += 1;
                 this._refresh();
             });
+
+          
+            //Delete layer button
+            const delete_layer_button = document.createElement('button');
+            controls_div.appendChild(delete_layer_button);
+            delete_layer_button.innerHTML = 'Delete';
+            delete_layer_button.style.marginTop = '4px';
+            if (i == 0 || i == this._layer_sizes.length - 1){
+                delete_layer_button.style.visibility = 'hidden';
+            }
+            delete_layer_button.addEventListener('click', (event) => {
+                this._layer_sizes.splice(i, 1);
+                this._refresh();
+            });
         }
 
-        const PREF_GAP = this.getBoundingClientRect().width / (this._layer_sizes.length - 1) - 100;
-        this.style.gap = `${Math.min(PREF_GAP, 300)}px`;
+        //Add layer buttons
+        for (let i = 0; i < this._layer_sizes.length - 1; i++){
+            const layer_div = document.getElementById(`layer_${i}`);
+            const next_layer_div = document.getElementById(`layer_${i + 1}`);
+            const controls_div = document.getElementById(`${layer_div.id}_controls`);
+
+            const add_layer_button = document.createElement('button');
+            controls_div.appendChild(add_layer_button);
+            add_layer_button.style.position = 'absolute';
+            add_layer_button.innerHTML = '+ Layer';
+            add_layer_button.style.zIndex = 5;
+            const distance = next_layer_div.getBoundingClientRect().left - layer_div.getBoundingClientRect().left;
+            add_layer_button.style.left = `${(controls_div.clientWidth + distance - add_layer_button.clientWidth) / 2}px`;
+            add_layer_button.addEventListener('click', (event) => {
+                this._layer_sizes.splice(i + 1, 0, 1);
+                this._refresh();
+            });
+        }
 
         //Create connections
         for (let i = 1; i < this._layer_sizes.length; i++){
