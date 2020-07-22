@@ -17,23 +17,31 @@
 
         <neural-network id="neural_network"></neural-network>
 
-        <div style="width: 95%; height: 1px; background-color: rgb(138, 138, 138); margin: 24px auto 24px auto;"></div>
-
         <!-- Training controls -->
-        <div>
-            <button id="edit_network_button">Edit Network</button>
-            <button id="random_init_button">Randomly Initialize Weights and Biases</button>
-            <button id="single_step_button">1 Step</button>
-            <button id="single_example_button">1 Train</button>
-            <button id="train_all_button">Train all</button>
+        <div style="display: flex; justify-content: center; gap: 40px; margin-top: 32px;">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <label style="margin-bottom: 16px;">Network Configuration</label>
+                <div style="display: flex; gap: 24px; justify-content: center;">
+                    <button id="edit_network_button">Edit Network</button>
+                    <button id="random_config_button">Random Configuration</button>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <label style="margin-bottom: 16px;">Training</label>
+                <div style="display: flex; gap: 24px; justify-content: center;">
+                    <button id="single_step_button">1 Step</button>
+                    <button id="single_example_button">1 Train</button>
+                    <button id="train_all_button">Train all</button>
+                </div>
+            </div>
         </div>
 
-        <div style="width: 95%; height: 1px; background-color: rgb(138, 138, 138); margin: 24px auto 24px auto;"></div>
+        <div style="width: 100%; height: 1px; background-color: rgb(138, 138, 138); margin: 24px auto 24px auto;"></div>
 
-        <label id="network_step_id"></label>
-
-        <!-- Neuron details -->
-        <div id="neuron_details_div" style="color: white; font-size: 1.4em;"></div>
+        <!-- Calculation Details -->
+        <label id="current_step_label" style="font-size: 1.4em;"></label>
+        <label id="sub_step_label" style="font-size: 1.2em;"></label>
+        <div id="calculation_details_div" style="color: white; font-size: 1.2em;"></div>
 
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
         <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
