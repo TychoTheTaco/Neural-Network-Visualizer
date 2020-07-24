@@ -31,15 +31,12 @@ button:hover{
 
 table{
     border-collapse: collapse;
-    border: 1px solid gray;
 }
 
 table th{
-    border: 1px solid gray;
     padding: 8px;
 }
 
 table td{
-    border: 1px solid gray;
-    padding: 16px;
+    padding: 8px;
 }
