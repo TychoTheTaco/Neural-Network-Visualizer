@@ -44,9 +44,7 @@ class NeuralNetwork{
         this._layer_sizes = layer_sizes;
         this._layers = [];
         this._inputs = [];
-        this._step_index = 0;
-        this._sub_step_index = 0;
-        this._next_step_id = 'feed_forward';
+        this._step_index = [0];
 
         this._learning_rate = 0.5;
 
@@ -91,11 +89,6 @@ class NeuralNetwork{
         this._target_output = target_output;
     }
 
-    _setStep(step_id){
-        this._next_step_id = step_id;
-        this._step_index = 0;
-    }
-
     getStepId(){
         return this._next_step_id;
     }
@@ -117,9 +110,11 @@ class NeuralNetwork{
     }
 
     step(){
-        if (this._next_step_id == 'feed_forward'){
-            if (this._step_index == 0){
+        let result = null;
+        if (this._step_index[0] == 0){
+            if (this._step_index.length == 1){
                 this._prev_output = this._inputs;
+                this._step_index.push(0);
             }
            
             if (this._neuron_index + 1 == this._layer_sizes[this._layer_index + 1]){
@@ -130,20 +125,19 @@ class NeuralNetwork{
             }else{
                 this._neuron_index++;
             }
-            this._step_index++;
 
             this._output.push(this._feed_step(this._prev_output, this._layer_index, this._neuron_index));
 
+            result = ['feed_forward', ++this._step_index[1], this._getMaxSubSteps('feed_forward')];
+
+            //Next step
             if (this._layer_index == this._layers.length - 1 && this._neuron_index == this._layer_sizes[this._layer_index + 1] - 1){
-                this._setStep('calculate_loss');
-                this._prev_step_id = 'feed_forward';
+                this._step_index = [1];
             }
-            return ['feed_forward', ++this._sub_step_index, this._getMaxSubSteps('feed_forward')];
-        }else if (this._next_step_id == 'calculate_loss'){
-            if (this._prev_step_id == 'feed_forward'){
-                this._prev_step_id = '';
+        }else if (this._step_index[0] == 1){
+            if (this._step_index.length == 1){
+                this._step_index.push(0);
                 this._loss = 0;
-                this._sub_step_index = 0;
                 this._neuron_index = -1;
             }
 
@@ -153,25 +147,26 @@ class NeuralNetwork{
             this._last_layer_losses.push(loss);
             this._loss += loss;
 
-            if (this._neuron_index + 1 == this._layer_sizes[this._layer_index + 1]){
-                this._setStep('sum_losses');
-            }
+            result = ['calculate_loss', ++this._step_index[1], this._getMaxSubSteps('calculate_loss')];
 
-            return ['calculate_loss', ++this._sub_step_index, this._getMaxSubSteps('calculate_loss')];
-        }else if (this._next_step_id == 'sum_losses'){
-            this._setStep('back_prop');
-            this._prev_step_id = 'sum_losses';
-            return ['sum_losses', ++this._sub_step_index, this._getMaxSubSteps('calculate_loss')];
-        }else if (this._next_step_id == 'back_prop'){
-            if (this._prev_step_id == 'sum_losses'){
-                this._prev_step_id = '';
-                this._sub_step_index = 0;
+            //Next step
+            if (this._neuron_index + 1 == this._layer_sizes[this._layer_index + 1]){
+                this._step_index = [2];
+            }
+        }else if (this._step_index[0] == 2){
+            if (this._step_index.length == 1){
+                this._step_index.push(0);
+            }
+            result = ['sum_losses', ++this._step_index[1], this._getMaxSubSteps('calculate_loss')];
+            this._step_index = [3];
+        }else if (this._step_index[0] == 3){
+            if (this._step_index.length == 1){
+                this._step_index.push(0);
                 this._neuron_index = 0;
                 this._weight_index = -1;
             }
 
             this._weight_index++;
-            //console.log('LS: ', this._weight_index, ' VS ', this._layer_sizes[this._layer_index]);
             if (this._weight_index == this._layer_sizes[this._layer_index]){
                 this._neuron_index++;
                 this._weight_index = 0;
@@ -182,10 +177,9 @@ class NeuralNetwork{
                 this._neuron_index = 0;
             }
 
-            //console.log('L: ', this._layer_index, ' N: ', this._neuron_index, ' W: ', this._weight_index);
-
-            return ['back_prop', ++this._sub_step_index, this._getMaxSubSteps('back_prop')];
+            result = ['back_prop', ++this._step_index[1], this._getMaxSubSteps('back_prop')];
         }
+        return result;
     }
 
     _error_step(neuron_index){
