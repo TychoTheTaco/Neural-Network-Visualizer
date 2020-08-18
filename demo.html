@@ -1,0 +1,26 @@
+<!doctype html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <title>Neural Network Visualizer</title>
+
+        <link rel="stylesheet" href="dark.css" type="text/css">
+    </head>
+
+    <body style="margin: 16px;">
+
+        <!-- This invisible iframe is used for listening for resizes caused by the scrollbar appearnig -->
+        <iframe id="frame" width="100%" style="visibility: hidden; position: absolute; border: none; left: 0; right: 0;"></iframe>
+
+        <!-- Drawing canvas and controls -->
+        <div>
+            <canvas id="input_canvas" style="background-color: black; display: block;" width="280" height="280"></canvas>
+            <button id="clear_canvas_button">Clear Canvas</button>
+        </div>
+
+        <script src="demo.js" defer></script>
+    </body>
+</html>

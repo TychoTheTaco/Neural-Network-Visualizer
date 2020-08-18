@@ -930,6 +930,11 @@ single_step_button.addEventListener('click', (event) => {
     }
 });
 
+const train_all_button = document.getElementById('train_all_button');
+train_all_button.addEventListener('click', (event) => {
+    window.location = 'file:///A:/Code%20Projects/Neural%20Network%20Visualizer/demo.html';
+});
+
 const edit_network_button = document.getElementById('edit_network_button');
 edit_network_button.addEventListener('click', (event) => {
     neural_network_element.setEditMode(!neural_network_element.isEditMode());
