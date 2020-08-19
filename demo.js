@@ -67,29 +67,38 @@ class DrawCanvas{
                 scaled_data.push(average / 255);
             }
         }
-       
-        
-        const other = document.getElementById('other');
-        const other_ctx = other.getContext('2d');
-        const other_data = other_ctx.createImageData(28, 28);
-        for (let i = 0; i < other_data.data.length; i += 4){
-            const value = scaled_data[i / 4] * 255;
-            other_data.data[i] = value;
-            other_data.data[i + 1] = value;
-            other_data.data[i + 2] = value;
-            other_data.data[i + 3] = 255;
-        }
-        other_ctx.putImageData(other_data, 0, 0, 0, 0, 28, 28);
 
         const result = nerual_network.process(scaled_data);
 
-        let string = '';
+        const output_canvas = document.getElementById('output_canvas');
+        const output_ctx = output_canvas.getContext('2d');
+
+        const RADIUS = 24;
+        const SPACING = 8;
+
+        const MAX_INDEX = result.indexOf(Math.max(...result));
+
+        output_ctx.clearRect(0, 0, output_canvas.width, output_canvas.height);
         for (let i = 0; i < result.length; i++){
-            string += result[i] + '<br>';
+            const centerX = 40;
+            const centerY = i * (RADIUS * 2 + SPACING) + (SPACING + RADIUS);
+
+            output_ctx.globalAlpha = result[i];
+            output_ctx.beginPath();
+            output_ctx.arc(centerX, centerY, RADIUS, 0, 2 * Math.PI, false);
+            output_ctx.fillStyle = 'gray';
+            output_ctx.fill()
+            output_ctx.lineWidth = 2;
+            output_ctx.strokeStyle = (i == MAX_INDEX) ? '#32a852' : 'black';
+            output_ctx.stroke();
+            output_ctx.globalAlpha = 1;
+
+            output_ctx.fillStyle = 'white';
+            output_ctx.font = '1em Arial';
+            output_ctx.fillText(result[i].toFixed(3), centerX / 2, centerY + 5);
         }
 
-        document.getElementById('output_label').innerHTML = string;
-        document.getElementById('prediction_label').innerHTML = result.indexOf(Math.max(...result));
+        document.getElementById('prediction_label').innerHTML = MAX_INDEX;
     }
 
     clear(){

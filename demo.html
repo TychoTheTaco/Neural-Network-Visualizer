@@ -16,15 +16,31 @@
         <iframe id="frame" width="100%" style="visibility: hidden; position: absolute; border: none; left: 0; right: 0;"></iframe>
 
         <!-- Drawing canvas and controls -->
-        <div style="display: flex; align-items: center;">
-            <canvas id="input_canvas" style="background-color: black;" width="280" height="280"></canvas>
-            <button id="clear_canvas_button">Clear Canvas</button>
-            <canvas id="other" style="background-color: black;" width="28" height="28"></canvas>
-            <label id="prediction_label"></label>
-        </div>
-
-        <label id="output_label"></label>
-
+        <table style="table-layout: fixed; margin: 0px auto 0px auto;">
+            <tr>
+                <td>
+                    <canvas id="input_canvas" style="background-color: black;" width="280" height="280"></canvas>
+                </td>
+                <td>
+                    <label style="font-family: Arial; font-size: 6em; margin: 0px 32px 0px 32px;">-></label>
+                </td>
+                <td style="width: 100px">
+                    <canvas id="output_canvas" width="80" height="568">
+                </td>
+                <td>
+                    <label style="font-family: Arial; font-size: 6em; margin: 0px 32px 0px 32px;">-></label>
+                </td>
+                <td style="width: 32px;">
+                    <label id="prediction_label"></label>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">
+                    <button id="clear_canvas_button">Clear Canvas</button>
+                </td>
+            </tr>
+        </table>
+       
         <script src="neural_network.js" defer></script>
         <script src="demo.js" defer></script>
     </body>
