@@ -16,11 +16,16 @@
         <iframe id="frame" width="100%" style="visibility: hidden; position: absolute; border: none; left: 0; right: 0;"></iframe>
 
         <!-- Drawing canvas and controls -->
-        <div>
-            <canvas id="input_canvas" style="background-color: black; display: block;" width="280" height="280"></canvas>
+        <div style="display: flex; align-items: center;">
+            <canvas id="input_canvas" style="background-color: black;" width="280" height="280"></canvas>
             <button id="clear_canvas_button">Clear Canvas</button>
+            <canvas id="other" style="background-color: black;" width="28" height="28"></canvas>
+            <label id="prediction_label"></label>
         </div>
 
+        <label id="output_label"></label>
+
+        <script src="neural_network.js" defer></script>
         <script src="demo.js" defer></script>
     </body>
 </html>
