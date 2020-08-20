@@ -78,12 +78,25 @@ class DrawCanvas{
 
         const MAX_INDEX = result.indexOf(Math.max(...result));
 
+        const TRANSLATE_AMOUNT = (output_canvas.width / 2) - (RADIUS + SPACING);
+
+        output_ctx.translate(TRANSLATE_AMOUNT, 0);
         output_ctx.clearRect(0, 0, output_canvas.width, output_canvas.height);
         for (let i = 0; i < result.length; i++){
-            const centerX = 40;
+            const centerX = RADIUS + SPACING;
             const centerY = i * (RADIUS * 2 + SPACING) + (SPACING + RADIUS);
 
             output_ctx.globalAlpha = result[i];
+
+            //Draw outgoing line
+            output_ctx.strokeStyle = (i == MAX_INDEX) ? '#32a852' : 'gray';
+            output_ctx.lineWidth = result[i];
+            output_ctx.beginPath();
+            output_ctx.moveTo(centerX, centerY);
+            output_ctx.lineTo(output_canvas.width / 2, output_canvas.height / 2);
+            output_ctx.stroke();
+
+            //Draw neuron background
             output_ctx.beginPath();
             output_ctx.arc(centerX, centerY, RADIUS, 0, 2 * Math.PI, false);
             output_ctx.fillStyle = 'gray';
@@ -93,12 +106,27 @@ class DrawCanvas{
             output_ctx.stroke();
             output_ctx.globalAlpha = 1;
 
+            //Draw neuron label
             output_ctx.fillStyle = 'white';
             output_ctx.font = '1em Arial';
-            output_ctx.fillText(result[i].toFixed(3), centerX / 2, centerY + 5);
+            output_ctx.fillText(result[i].toFixed(3), centerX - RADIUS + (SPACING / 2), centerY + 5);
         }
+        output_ctx.translate(-TRANSLATE_AMOUNT, 0);
 
-        document.getElementById('prediction_label').innerHTML = MAX_INDEX;
+        //Draw prediction
+        const centerX = output_canvas.width - SPACING - RADIUS;
+        const centerY = output_canvas.height / 2;
+        output_ctx.beginPath();
+        output_ctx.arc(centerX, centerY, RADIUS, 0, 2 * Math.PI, false);
+        output_ctx.fillStyle = 'gray';
+        output_ctx.fill()
+        output_ctx.lineWidth = 2;
+        output_ctx.strokeStyle = 'black';
+        output_ctx.stroke();
+
+        output_ctx.fillStyle = 'white';
+        output_ctx.font = '1.5em Arial';
+        output_ctx.fillText(MAX_INDEX, centerX - 7, centerY + 8);
     }
 
     clear(){
