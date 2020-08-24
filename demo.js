@@ -53,10 +53,57 @@ class DrawCanvas{
         })
     }
 
+    bounds(image_data){
+        const CHANNEL_COUNT = 4;
+        console.log(image_data);
+        //x1, y1, x2, y2
+        const bounds = [image_data.width, image_data.height, 0, 0];
+        for (let y = 0; y < image_data.height; y++){
+            for (let x = 0; x < image_data.width; x++){
+                let value = 0;
+                for (let i = 0; i < CHANNEL_COUNT - 1; i++){
+                    value += image_data.data[CHANNEL_COUNT * (image_data.height * y + x) + i]
+                }
+                value /= (CHANNEL_COUNT - 1);
+
+                if (value > 0){
+                    if (x < bounds[0]){
+                        bounds[0] = x;
+                    }
+                    if (y < bounds[1]){
+                        bounds[1] = y;
+                    }
+
+                    //console.log('x: ', x);
+                    bounds[2] = Math.max(bounds[2], x);
+                    bounds[3] = Math.max(bounds[3], y);
+                }
+            }
+        }
+        return bounds;
+    }
+
+    center(image_data){
+        const other = document.getElementById('other');
+        const other_ctx = other.getContext('2d');
+        const centered = other_ctx.createImageData(image_data.width, image_data.height);
+        const bounds = this.bounds(image_data);
+        
+        const offsetX = (image_data.width / 2) - ((bounds[2] + bounds[0]) / 2);
+        const offsetY = (image_data.height / 2) - ((bounds[3] + bounds[1]) / 2);
+        console.log(offsetX, offsetY);
+
+        let ictx = input_canvas.getContext('2d');
+        ictx.clearRect(0, 0, input_canvas.width, input_canvas.height);
+        ictx.putImageData(image_data, offsetX, offsetY, 0, 0, image_data.width, image_data.height);
+
+        return ictx.getImageData(0, 0, input_canvas.width, input_canvas.height);
+    }
+
     process(){
         const SCALE = 10;
         const CHANNEL_COUNT = 4;
-        const image_data = this._ctx.getImageData(0, 0, this._canvas.width, this._canvas.height).data;
+        let image_data = this.center(this._ctx.getImageData(0, 0, this._canvas.width, this._canvas.height)).data;
         const scaled_data = [];
         const tensor_data = [];
         for (let y = 0; y < this._canvas.height; y += SCALE){
@@ -68,10 +115,20 @@ class DrawCanvas{
                 }
                 average /= CHANNEL_COUNT;
                 scaled_data.push(average / 255);
-                line_data.push(average / 255);
+                line_data.push([average / 255]);
             }
             tensor_data.push(line_data);
         }
+
+        const input_image_data = this._ctx.getImageData(0, 0, this._canvas.width, this._canvas.height);
+        const bounds = this.bounds(this._ctx.getImageData(0, 0, this._canvas.width, this._canvas.height));
+        console.log('BOUNDS: ', bounds);
+        let ictx = input_canvas.getContext('2d');
+        ictx.strokeStyle = 'red';
+        ictx.lineWidth = 1;
+        ictx.strokeRect(bounds[0], bounds[1], bounds[2] - bounds[0], bounds[3] - bounds[1]);
+        ictx.lineWidth = 15;
+        ictx.strokeStyle = 'white';
 
         const tensor = tf.tensor([tensor_data]);
         const presult = dmodel.predict(tensor);
@@ -86,7 +143,7 @@ class DrawCanvas{
 
         const other = document.getElementById('other');
         const other_ctx = other.getContext('2d');
-        const other_data = other_ctx.createImageData(28, 28);
+        let other_data = other_ctx.createImageData(28, 28);
         for (let i = 0; i < other_data.data.length; i += 4){
             const value = scaled_data[i / 4] * 255;
             other_data.data[i] = value;
@@ -94,7 +151,8 @@ class DrawCanvas{
             other_data.data[i + 2] = value;
             other_data.data[i + 3] = 255;
         }
-        other_ctx.putImageData(other_data, 0, 0, 0, 0, 28, 28);
+        other_data = this.center(input_image_data);
+        //other_ctx.putImageData(other_data, 0, 0, 0, 0, 28, 28);
        
         const result = r;
 
@@ -215,7 +273,7 @@ const drawCanvas = new DrawCanvas(document.getElementById('input_canvas'));
 
 
 let dmodel = null;
-tf.loadLayersModel('http://localhost:8000/digits_js_model/model.json').then(model => {
+tf.loadLayersModel('http://localhost:8000/digits_js_model_conv/model.json').then(model => {
     dmodel = model;
     dmodel.summary()
 });

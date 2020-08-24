@@ -4,6 +4,49 @@ function sig(x){
     return 1 / (1 + Math.pow(Math.E, -x));
 }
 
+function dsig(x){
+    return sig(x) * (1 - sig(x));
+}
+
+class Layer{
+
+    constructor(inputSize, size){
+        this._inputSize = inputSize;
+        this._size = size;
+        this._weights = [];
+        this._biases = [];
+
+        this._net = [];
+        this._out = [];
+    }
+
+    initializeRandomly(){
+        for (let i = 0; i < this._size; i++){
+            this._weights[i] = [];
+            this._biases[i] = 1;
+            for (let j = 0; j < this._inputSize; j++){
+                this._weights[i][j] = 1;
+            }
+        }
+    }
+
+    initialize(weights, biases){
+        this._weights = weights;
+        this._biases = biases;
+    }
+
+    feed(input){
+        for (let i = 0; i < this._size; i++){
+            this._net[i] = this._biases[i];
+            for (let j = 0; j < this._inputSize; j++)  {
+                this._net[i] += this._weights[i][j] * input[j];
+            }
+            this._out[i] = sig(this._net[i]);
+        }
+        return [this._net, this._out];
+    }
+}
+
 class NeuralNetwork{
 
     constructor(layer_sizes){
@@ -19,6 +62,12 @@ class NeuralNetwork{
         this._layer_index = 0;
         this._neuron_index = -1;
         this._last_layer_losses = [];
+
+        this._layers = [];
+        for (let i = 1; i < layer_sizes.length; i++){
+            this._layers.push(new Layer(layer_sizes[i - 1], layer_sizes[i]));
+        }
+        this._layerCount = this._layers.length;
     }
 
     reset(){
@@ -30,10 +79,9 @@ class NeuralNetwork{
         this._last_layer_losses = [];
     }
 
-    initialize(weights, biases){
-        this._layers = [];
-        for (let i = 0; i < weights.length; i++){
-            this._layers.push({'weights': weights[i], 'biases': biases[i], 'values': [], 'activations': []});
+    setWeights(weights, biases){
+        for (let i = 0; i < this._layerCount; i++){
+            this._layers[i].initialize(weights[i], biases[i]);
         }
     }
 
@@ -41,7 +89,7 @@ class NeuralNetwork{
         return fetch(file).then(response => response.text());
     }
 
-    initializeRandomly(){
+    /* initializeRandomly(){
         const w = [];
         const b = [];
         for (let i = 1; i < this._layer_sizes.length; i++){
@@ -58,7 +106,7 @@ class NeuralNetwork{
             b.push(biases);
         }
         this.initialize(w, b);
-    }
+    } */
 
     process(input){
         this.reset();
@@ -81,6 +129,97 @@ class NeuralNetwork{
         return this._next_step_id;
     }
 
+    /**
+     * Train this model on a single training example.
+     * @param {*} input 
+     * @param {*} output 
+     */
+    async train(input, target_output){
+        const result = await this._feedForward(input);
+        //console.log('OUTPUT: ', result);
+
+        const error = this._calculate_error(target_output);
+        //console.log('ERROR: ', error);
+        console.log('loss: ', error.reduce((a, b) => a + b, 0));
+
+        this.summary();
+
+        this._target_output = target_output;
+        const changes = this._backProp(input);
+        //console.log('CHANGES: ', changes);
+
+        //Update weights
+        for (let i = 0; i < this._layers.length; i++){
+            for (let j = 0; j < this._layers[i]._size; j++){
+                for (let k = 0; k < this._layers[i]._inputSize; k++){
+                    this._layers[i]._weights[j][k] += changes.get(`${i}_${j}_${k}`);
+                }
+            }
+        }
+
+        this.summary();
+    }
+
+    summary(){
+        for (let i = 0; i < this._layers.length; i++){
+            console.log(`[Layer ${i}]`);
+            for (let j = 0; j < this._layers[i]._size; j++){
+                let weightString = '';
+                for (let k = 0; k < this._layers[i]._inputSize; k++){
+                    weightString += this._layers[i]._weights[j][k].toFixed(9) + " ";
+                }
+                console.log(`[Neuron ${j}]: ${weightString}`);
+            }
+        }
+    }
+
+    _der(i, j){
+        if (i == this._layerCount - 1){
+            return -(this._target_output[j] - this._layers[i]._out[j]) * dsig(this._layers[i]._net[j]);
+        }
+        let d = 0;
+        for (let k = 0; k < this._layers[i + 1]._size; k++){
+            d += this._der(i + 1, k) * this._layers[i + 1]._weights[k][j];
+        }
+        return d * dsig(this._layers[i]._net[j]);
+    }
+
+    _backProp(input){
+        const changes = new Map();
+        for (let i = this._layerCount - 1; i >= 0; i--){
+            for (let j = 0; j < this._layers[i]._size; j++){
+                const d = this._der(i, j);
+                for (let k = 0; k < this._layers[i]._inputSize; k++){
+                    let a = 0;
+                    if (i == 0){
+                        a = input[k];
+                    }else{
+                        a = this._layers[i - 1]._out[k];
+                    }
+                    changes.set(`${i}_${j}_${k}`, this._learning_rate * -(d * a));
+                }
+            }
+        }
+        return changes;
+    }
+
+    _calculate_error(target_output){
+        const error = [];
+        for (let i = 0; i < this._layer_sizes[this._layerCount]; i++){
+            error[i] = 0.5 * Math.pow(target_output[i] - this._layers[this._layerCount - 1]._out[i], 2);
+        }
+        return error;
+    }
+
+    async _feedForward(input){
+        let result = this._layers[0].feed(input);
+        for (let i = 1; i < this._layerCount; i++){
+            await wait();
+            result = this._layers[i].feed(this._layers[i - 1]._out);
+        }
+        return result[1];
+    }
+
     _getMaxSubSteps(step_id){
         let sub_step_count = 0;
         if (step_id == 'feed_forward'){
@@ -97,7 +236,7 @@ class NeuralNetwork{
         return sub_step_count
     }
 
-    step(){
+    async step(){
         let result = null;
         if (this._step_index[0] == 0){
             if (this._step_index.length == 1){
@@ -174,8 +313,10 @@ class NeuralNetwork{
         return 0.5 * Math.pow(this._target_output[neuron_index] - this._layers[this._layers.length - 1].activations[neuron_index], 2);
     }
 
-    _feed_step(input, layer_index, neuron_index){
+    async _feed_step(input, layer_index, neuron_index){
         //console.log('feed step: ', layer_index, ' ', neuron_index, 'input: ', input);
+        await wait();
+        console.log('continue');
         let sum = 0;
         for (let j = 0; j < input.length; j++){
             sum += this._layers[layer_index].weights[neuron_index][j] * input[j];
@@ -200,4 +341,14 @@ class NeuralNetwork{
         }
         return output;
     }
+}
+
+async function wait(){
+    console.log('Waiting...');
+    return new Promise((resolve) => {
+        const single_example_button = document.getElementById('single_example_button');
+        single_example_button.addEventListener('click', (event) => {
+            resolve();
+        })
+      });
 }
