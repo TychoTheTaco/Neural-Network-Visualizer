@@ -6,8 +6,8 @@ class DrawCanvas{
         this._canvas = canvas;
 
         this._ctx = input_canvas.getContext('2d');
-        this._ctx.filter = "blur(4px)";
-        this._ctx.lineWidth = 20;
+        this._ctx.filter = "blur(2px)";
+        this._ctx.lineWidth = 15;
         this._ctx.lineCap = 'round';
         this._ctx.strokeStyle = 'white';
 
@@ -25,7 +25,7 @@ class DrawCanvas{
                 this._ctx.lineTo(this._last_x, this._last_y);
                 this._ctx.stroke();
 
-                this.process();
+                //this.process();
             }
         });
 
@@ -40,7 +40,7 @@ class DrawCanvas{
 
         canvas.addEventListener('mouseup', (event) => {
             this._isMouseDown = false;
-            //this.process();
+            this.process();
         })
 
         canvas.addEventListener('mouseleave', (event) => {
@@ -74,9 +74,9 @@ class DrawCanvas{
         }
 
         const tensor = tf.tensor([tensor_data]);
-        const result = dmodel.predict(tensor);
+        const presult = dmodel.predict(tensor);
     
-        const r = result.softmax().arraySync()[0];
+        const r = presult.softmax().arraySync()[0];
         const MAX_INDEX = r.indexOf(Math.max(...r));
 
         const output_canvas = document.getElementById('output_canvas');
@@ -84,20 +84,37 @@ class DrawCanvas{
         const RADIUS = 24;
         const SPACING = 8;
 
-        //const result = nerual_network.process(scaled_data);
+        const other = document.getElementById('other');
+        const other_ctx = other.getContext('2d');
+        const other_data = other_ctx.createImageData(28, 28);
+        for (let i = 0; i < other_data.data.length; i += 4){
+            const value = scaled_data[i / 4] * 255;
+            other_data.data[i] = value;
+            other_data.data[i + 1] = value;
+            other_data.data[i + 2] = value;
+            other_data.data[i + 3] = 255;
+        }
+        other_ctx.putImageData(other_data, 0, 0, 0, 0, 28, 28);
+       
+        const result = r;
 
-        /* const output_canvas = document.getElementById('output_canvas');
-        const output_ctx = output_canvas.getContext('2d');
-
-        const MAX_INDEX = result.indexOf(Math.max(...result));
-
+      
         const TRANSLATE_AMOUNT = (output_canvas.width / 2) - (RADIUS + SPACING);
 
-        output_ctx.translate(TRANSLATE_AMOUNT, 0);
         output_ctx.clearRect(0, 0, output_canvas.width, output_canvas.height);
+        output_ctx.translate(TRANSLATE_AMOUNT, 0);
         for (let i = 0; i < result.length; i++){
             const centerX = RADIUS + SPACING;
             const centerY = i * (RADIUS * 2 + SPACING) + (SPACING + RADIUS);
+
+            //Draw incoming line
+            output_ctx.globalAlpha = 0.25;
+            output_ctx.strokeStyle = 'gray';
+            output_ctx.lineWidth = 1;
+            output_ctx.beginPath();
+            output_ctx.moveTo(-TRANSLATE_AMOUNT - input_canvas.width / 2, output_canvas.height / 2);
+            output_ctx.lineTo(centerX, centerY);
+            output_ctx.stroke();
 
             output_ctx.globalAlpha = result[i];
 
@@ -110,21 +127,23 @@ class DrawCanvas{
             output_ctx.stroke();
 
             //Draw neuron background
+            output_ctx.fillStyle = 'gray';
             output_ctx.beginPath();
             output_ctx.arc(centerX, centerY, RADIUS, 0, 2 * Math.PI, false);
-            output_ctx.fillStyle = 'gray';
             output_ctx.fill()
+            output_ctx.beginPath()
+            output_ctx.arc(centerX, centerY, RADIUS, 0, 2 * Math.PI, false);
             output_ctx.lineWidth = 2;
+            output_ctx.globalAlpha = 1;
             output_ctx.strokeStyle = (i == MAX_INDEX) ? '#32a852' : 'black';
             output_ctx.stroke();
-            output_ctx.globalAlpha = 1;
 
             //Draw neuron label
             output_ctx.fillStyle = 'white';
             output_ctx.font = '1em Arial';
             output_ctx.fillText(result[i].toFixed(3), centerX - RADIUS + (SPACING / 2), centerY + 5);
         }
-        output_ctx.translate(-TRANSLATE_AMOUNT, 0); */
+        output_ctx.translate(-TRANSLATE_AMOUNT, 0); 
 
         //Draw prediction
         const centerX = output_canvas.width - SPACING - RADIUS;

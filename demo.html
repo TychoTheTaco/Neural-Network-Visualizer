@@ -18,19 +18,20 @@
         <!-- Drawing canvas and controls -->
         <table style="table-layout: fixed; margin: 0px auto 0px auto;">
             <tr>
-                <td>
-                    <canvas id="input_canvas" style="background-color: black;" width="280" height="280"></canvas>
+                <td style="padding-right: 0px;">
+                    <div style="display: flex; flex-direction: column; position: relative;">
+                        <canvas id="input_canvas" style="background-color: black;" width="280" height="280"></canvas>
+                        <button id="clear_canvas_button" style="position: absolute; bottom: -48px;">Clear Canvas</button>
+                    </div>
+                    
                 </td>
-                <td style="width: 600px">
-                    <canvas id="output_canvas" width="600" height="568">
+                <td style="padding-left: 0px;">
+                    <canvas id="output_canvas" width="400" height="568">
                 </td>
             </tr>
-            <tr>
-                <td style="text-align: center;">
-                    <button id="clear_canvas_button">Clear Canvas</button>
-                </td>
-            </tr>
+            
         </table>
+        <canvas id="other" style="background-color: black;" width="28" height="28"></canvas>
        
         <script src="neural_network.js" defer></script>
         <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js" defer></script>
