@@ -37,6 +37,10 @@ class NeuralNetwork{
         }
     }
 
+    initializeFromFile(file){
+        return fetch(file).then(response => response.text());
+    }
+
     initializeRandomly(){
         const w = [];
         const b = [];

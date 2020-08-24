@@ -6,7 +6,8 @@ class DrawCanvas{
         this._canvas = canvas;
 
         this._ctx = input_canvas.getContext('2d');
-        this._ctx.lineWidth = 10;
+        this._ctx.filter = "blur(4px)";
+        this._ctx.lineWidth = 20;
         this._ctx.lineCap = 'round';
         this._ctx.strokeStyle = 'white';
 
@@ -56,8 +57,10 @@ class DrawCanvas{
         const SCALE = 10;
         const CHANNEL_COUNT = 4;
         const image_data = this._ctx.getImageData(0, 0, this._canvas.width, this._canvas.height).data;
-        const scaled_data = []
+        const scaled_data = [];
+        const tensor_data = [];
         for (let y = 0; y < this._canvas.height; y += SCALE){
+            const line_data = [];
             for (let x = 0; x < this._canvas.width; x += SCALE){
                 let average = 0;
                 for (let j = 0; j < CHANNEL_COUNT; j++){
@@ -65,16 +68,26 @@ class DrawCanvas{
                 }
                 average /= CHANNEL_COUNT;
                 scaled_data.push(average / 255);
+                line_data.push(average / 255);
             }
+            tensor_data.push(line_data);
         }
 
-        const result = nerual_network.process(scaled_data);
+        const tensor = tf.tensor([tensor_data]);
+        const result = dmodel.predict(tensor);
+    
+        const r = result.softmax().arraySync()[0];
+        const MAX_INDEX = r.indexOf(Math.max(...r));
 
         const output_canvas = document.getElementById('output_canvas');
         const output_ctx = output_canvas.getContext('2d');
-
         const RADIUS = 24;
         const SPACING = 8;
+
+        //const result = nerual_network.process(scaled_data);
+
+        /* const output_canvas = document.getElementById('output_canvas');
+        const output_ctx = output_canvas.getContext('2d');
 
         const MAX_INDEX = result.indexOf(Math.max(...result));
 
@@ -90,7 +103,7 @@ class DrawCanvas{
 
             //Draw outgoing line
             output_ctx.strokeStyle = (i == MAX_INDEX) ? '#32a852' : 'gray';
-            output_ctx.lineWidth = result[i];
+            output_ctx.lineWidth = result[i] * 3;
             output_ctx.beginPath();
             output_ctx.moveTo(centerX, centerY);
             output_ctx.lineTo(output_canvas.width / 2, output_canvas.height / 2);
@@ -111,7 +124,7 @@ class DrawCanvas{
             output_ctx.font = '1em Arial';
             output_ctx.fillText(result[i].toFixed(3), centerX - RADIUS + (SPACING / 2), centerY + 5);
         }
-        output_ctx.translate(-TRANSLATE_AMOUNT, 0);
+        output_ctx.translate(-TRANSLATE_AMOUNT, 0); */
 
         //Draw prediction
         const centerX = output_canvas.width - SPACING - RADIUS;
@@ -137,7 +150,53 @@ class DrawCanvas{
 const drawCanvas = new DrawCanvas(document.getElementById('input_canvas'));
 
 //Initialize neural network for processing user input
-const nerual_network = new NeuralNetwork([28 * 28, 8, 8, 10]);
-nerual_network.initializeRandomly();
-console.log(nerual_network._layer_sizes)
-console.log(nerual_network._layers);
+//const nerual_network = new NeuralNetwork([28 * 28, 8, 8, 10]);
+/* let r = nerual_network.initializeFromFile('http://localhost:8000/weights.txt')
+    .then(text => {
+        const lines = text.split('\n');
+        console.log(lines);
+        const version = lines[0];
+        const layer_count = lines[1] - 1;
+        const layer_sizes = lines[2].trim().split(' ');
+        for (let i = 0; i < layer_sizes.length; i++){
+            layer_sizes[i] = Number(layer_sizes[i]);
+        }
+
+        console.log('Version: ', version);
+        console.log('layer_count: ', layer_count);
+        console.log('layer_sizes: ', layer_sizes);
+
+        let weights = [];
+        let biases = [];
+        let index = 3;
+        for (let i = 0; i < layer_count; i++){
+            let layer_weights = [];
+            for (let j = 0; j < layer_sizes[i + 1]; j++){
+                let neuron_weights = [];
+                for (let k = 0; k < layer_sizes[i]; k++){
+                    neuron_weights.push(Number(lines[index++]));
+                }
+                layer_weights.push(neuron_weights);
+            }
+
+            let layer_biases = [];
+            for (let j = 0; j < layer_sizes[i + 1]; j++){
+                layer_biases.push(Number(lines[index++]));
+            }
+
+            weights.push(layer_weights);
+            biases.push(layer_biases);
+        }
+
+        nerual_network.initialize(weights, biases);
+    }); */
+//nerual_network.initializeRandomly();
+//console.log(nerual_network._layer_sizes)
+//console.log(nerual_network._layers);
+
+
+let dmodel = null;
+tf.loadLayersModel('http://localhost:8000/digits_js_model/model.json').then(model => {
+    dmodel = model;
+    dmodel.summary()
+});

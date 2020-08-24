@@ -548,6 +548,7 @@ single_step_button.addEventListener('click', (event) => {
 
     const i = neural_network._layer_index + 1;
     const j = neural_network._neuron_index;
+    console.log(i, j);
 
     sub_step_label.innerHTML = `Step ${step[1]} / ${step[2]}`;
 
@@ -675,9 +676,9 @@ single_step_button.addEventListener('click', (event) => {
 
             neural_network_element._calculation_details_div.appendChild(
                 createTable([
-                    [`\\(c_i = (t_i - a_i)^2\\)`],
-                    [`\\(\\frac{\\partial c}{\\partial a_i} = 2(t_i - a_i) \\times {-1}\\)`],
-                    [`\\(\\frac{\\partial c}{\\partial a_i} = -2(t_i - a_i)\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = -2(${t_i} - ${f_a_i})\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = ${f_d_c_d_a}\\)`]
+                    [`\\(E_i = (t_i - a_i)^2\\)`],
+                    [`\\(\\frac{\\partial E}{\\partial a_i} = 2(t_i - a_i) \\times {-1}\\)`],
+                    [`\\(\\frac{\\partial E}{\\partial a_i} = -2(t_i - a_i)\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = -2(${t_i} - ${f_a_i})\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = ${f_d_c_d_a}\\)`]
                 ], true, '25%')
             );
 
@@ -748,6 +749,15 @@ single_step_button.addEventListener('click', (event) => {
                 [`\\(w\\prime = w - (R \\times \\frac{\\partial c}{\\partial w})\\)`, `\\(${format(w_prime, 6)} = ${format(w, 6)} - (${neural_network._learning_rate} \\times ${f_d_c_d_w})\\)`]
             ], true, '25%');
             neural_network_element._calculation_details_div.appendChild(table_3);
+        }else if (i == neural_network._layers.length - 1){
+            neural_network_element._calculation_details_div.appendChild(
+                createTable([
+                    [`\\(\\frac{\\partial L}{\\partial a_i} = \\frac{\\partial C}{\\partial a_${0}} + \\frac{\\partial c}{\\partial a_${1}}\\)`],
+                    [`\\(c_i = (t_i - a_i)^2\\)`],
+                    [`\\(\\frac{\\partial c}{\\partial a_i} = 2(t_i - a_i) \\times {-1}\\)`],
+                    [`\\(\\frac{\\partial c}{\\partial a_i} = -2(t_i - a_i)\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = -2(${7} - ${7})\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = ${7}\\)`]
+                ], true, '25%')
+            );
         }
         
         MathJax.typeset();
@@ -756,7 +766,7 @@ single_step_button.addEventListener('click', (event) => {
 
 const train_all_button = document.getElementById('train_all_button');
 train_all_button.addEventListener('click', (event) => {
-    window.location = 'file:///A:/Code%20Projects/Neural%20Network%20Visualizer/demo.html';
+    window.location = 'http://localhost:8000/demo.html';
 });
 
 const edit_network_button = document.getElementById('edit_network_button');
@@ -848,4 +858,10 @@ class DrawCanvas{
     }
 }
 
-//const drawCanvas = new DrawCanvas(document.getElementById('input_canvas'));
+/*
+[E] Error for one neuron
+[c] loss of one training example
+[C] Cost of entire training set
+
+[A] Activation value of a neuron
+*/
