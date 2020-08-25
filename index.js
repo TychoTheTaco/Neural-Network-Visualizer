@@ -97,8 +97,8 @@ class NeuralNetworkElement extends HTMLElement{
     }
 
     _updateLabels(){
-        for (let i = 0; i < this._neural_network._layer_sizes.length; i++){
-            for (let j = 0; j < this._neural_network._layer_sizes[i]; j++){
+        for (let i = 0; i < this._neural_network._layerSizes.length; i++){
+            for (let j = 0; j < this._neural_network._layerSizes[i]; j++){
                 const label = document.getElementById(`layer_${i}_neuron_${j}_label`);
                 let value = null;
                 if (i == 0){
@@ -126,7 +126,7 @@ class NeuralNetworkElement extends HTMLElement{
             return;
         }
 
-        for (let i = 0; i < this._neural_network._layer_sizes.length; i++){
+        for (let i = 0; i < this._neural_network._layerSizes.length; i++){
             const layer_container = document.createElement('div');
             layer_container.style.display = 'flex';
             this.appendChild(layer_container);
@@ -142,7 +142,7 @@ class NeuralNetworkElement extends HTMLElement{
             const layer_name_label = document.createElement('label');
             if (i == 0){
                 layer_name_label.innerHTML = `Input`;
-            }else if (i == this._neural_network._layer_sizes.length - 1){
+            }else if (i == this._neural_network._layerSizes.length - 1){
                 layer_name_label.innerHTML = `Output`;
             }else{
                 layer_name_label.innerHTML = `Layer ${i}`;
@@ -164,11 +164,11 @@ class NeuralNetworkElement extends HTMLElement{
             const delete_layer_button = document.createElement('button');
             controls_div.appendChild(delete_layer_button);
             delete_layer_button.innerHTML = 'Delete';
-            if (i == 0 || i == this._neural_network._layer_sizes.length - 1){
+            if (i == 0 || i == this._neural_network._layerSizes.length - 1){
                 delete_layer_button.style.visibility = 'hidden';
             }
             delete_layer_button.addEventListener('click', (event) => {
-                this._neural_network._layer_sizes.splice(i, 1);
+                this._neural_network._layerSizes.splice(i, 1);
                 this._neural_network.initializeRandomly();
                 this._refresh();
             });
@@ -186,8 +186,8 @@ class NeuralNetworkElement extends HTMLElement{
             neuron_controls_div.appendChild(remove_neuron_button);
             remove_neuron_button.innerHTML = '-';
             remove_neuron_button.addEventListener('click', (event) => {
-                if (this._neural_network._layer_sizes[i] > 1){
-                    this._neural_network._layer_sizes[i] -= 1;
+                if (this._neural_network._layerSizes[i] > 1){
+                    this._neural_network._layerSizes[i] -= 1;
                     this._neural_network.initializeRandomly();
                     this._refresh();
                 }
@@ -195,13 +195,13 @@ class NeuralNetworkElement extends HTMLElement{
 
             const neuron_count_label = document.createElement('label');
             neuron_controls_div.appendChild(neuron_count_label);
-            neuron_count_label.innerHTML = `${this._neural_network._layer_sizes[i]}`;
+            neuron_count_label.innerHTML = `${this._neural_network._layerSizes[i]}`;
 
             const add_neuron_button = document.createElement('button');
             neuron_controls_div.appendChild(add_neuron_button);
             add_neuron_button.innerHTML = '+';
             add_neuron_button.addEventListener('click', (event) => {
-                this._neural_network._layer_sizes[i] += 1;
+                this._neural_network._layerSizes[i] += 1;
                 this._neural_network.initializeRandomly();
                 this._refresh();
             });
@@ -209,7 +209,7 @@ class NeuralNetworkElement extends HTMLElement{
             let layer_color;
             if (i == 0){
                 layer_color = NeuralNetworkElement.INPUT_LAYER_COLOR;
-            }else if (i == this._neural_network._layer_sizes.length - 1){
+            }else if (i == this._neural_network._layerSizes.length - 1){
                 layer_color = NeuralNetworkElement.OUTPUT_LAYER_COLOR;
             }else{
                 layer_color = NeuralNetworkElement.HIDDEN_LAYER_COLOR;
@@ -224,7 +224,7 @@ class NeuralNetworkElement extends HTMLElement{
             neurons_div.style.alignItems = 'center';
             neurons_div.style.justifyContent = 'center';
             neurons_div.style.gap = '20px';
-            for (let j = 0; j < this._neural_network._layer_sizes[i]; j++){
+            for (let j = 0; j < this._neural_network._layerSizes[i]; j++){
                 const neuron = document.createElement('div');
                 neurons_div.appendChild(neuron);
                 neuron.setAttribute('id', `${layer_div.id}_neuron_${j}`);
@@ -279,7 +279,7 @@ class NeuralNetworkElement extends HTMLElement{
                 label_container.style.justifyContent = 'center';
                 label_container.style.flexBasis = 'auto';
 
-                for (let j = 0; j < this._neural_network._layer_sizes[this._neural_network._layers.length]; j++){
+                for (let j = 0; j < this._neural_network._layerSizes[this._neural_network._layers.length]; j++){
                     const value_label = document.createElement('label');
                     value_label.style.marginLeft = 'auto';
                     value_label.style.marginRight = 'auto';
@@ -302,7 +302,7 @@ class NeuralNetworkElement extends HTMLElement{
         }
 
         //Add layer buttons
-        for (let i = 0; i < this._neural_network._layer_sizes.length - 1; i++){
+        for (let i = 0; i < this._neural_network._layerSizes.length - 1; i++){
             const layer_div = document.getElementById(`layer_${i}`);
             const next_layer_div = document.getElementById(`layer_${i + 1}`);
             const controls_div = document.getElementById(`${layer_div.id}_controls`);
@@ -315,31 +315,31 @@ class NeuralNetworkElement extends HTMLElement{
             const distance = next_layer_div.getBoundingClientRect().left - layer_div.getBoundingClientRect().left;
             add_layer_button.style.left = `${(controls_div.clientWidth + distance - add_layer_button.clientWidth) / 2}px`;
             add_layer_button.addEventListener('click', (event) => {
-                this._neural_network._layer_sizes.splice(i + 1, 0, 1);
+                this._neural_network._layerSizes.splice(i + 1, 0, 1);
                 this._neural_network.initializeRandomly();
                 this._refresh();
             });
         }
 
         if (this._edit_mode_enabled){
-            for (let i = 0; i < this._neural_network._layer_sizes.length; i++){
+            for (let i = 0; i < this._neural_network._layerSizes.length; i++){
                 const controls_div = document.getElementById(`layer_${i}_controls`);
                 controls_div.style.display = 'flex';
             }
         }else{
-            for (let i = 0; i < this._neural_network._layer_sizes.length; i++){
+            for (let i = 0; i < this._neural_network._layerSizes.length; i++){
                 const controls_div = document.getElementById(`layer_${i}_controls`);
                 controls_div.style.display = 'none';
             }
         }
 
         //Create connections
-        for (let i = 1; i < this._neural_network._layer_sizes.length; i++){
+        for (let i = 1; i < this._neural_network._layerSizes.length; i++){
             const src_layer_div = document.getElementById(`layer_${i - 1}`);
             const dst_layer_div = document.getElementById(`layer_${i}`);
-            for (let j = 0; j < this._neural_network._layer_sizes[i - 1]; j++){
+            for (let j = 0; j < this._neural_network._layerSizes[i - 1]; j++){
                 const src_neuron = document.getElementById(`${src_layer_div.id}_neuron_${j}`);
-                for (let k = 0; k < this._neural_network._layer_sizes[i]; k++){
+                for (let k = 0; k < this._neural_network._layerSizes[i]; k++){
                     const dst_neuron = document.getElementById(`${dst_layer_div.id}_neuron_${k}`);
 
                     const dst_bounds = dst_neuron.getBoundingClientRect();
@@ -395,9 +395,9 @@ class NeuralNetworkElement extends HTMLElement{
         }
 
         //Apply mouse over for neurons
-        for (let i = 1; i < this._neural_network._layer_sizes.length; i++){
+        for (let i = 1; i < this._neural_network._layerSizes.length; i++){
             const layer_div = document.getElementById(`layer_${i}`);
-            for (let j = 0; j < this._neural_network._layer_sizes[i]; j++){
+            for (let j = 0; j < this._neural_network._layerSizes[i]; j++){
                 const neuron = document.getElementById(`${layer_div.id}_neuron_${j}`);
 
                 /* neuron.addEventListener('click', (event) => {
@@ -422,7 +422,7 @@ class NeuralNetworkElement extends HTMLElement{
         layer_index--;
         const neurons = [];
         if (layer_index >= 0){
-            for (let i = 0; i < this._neural_network._layer_sizes[layer_index]; i++){
+            for (let i = 0; i < this._neural_network._layerSizes[layer_index]; i++){
                 neurons.push(document.getElementById(`layer_${layer_index}_neuron_${i}`));
             }
         }
@@ -430,8 +430,8 @@ class NeuralNetworkElement extends HTMLElement{
     }
 
     _deselectAll(){
-        for (let i = 1; i < this._neural_network._layer_sizes.length; i++){
-            for (let j = 0; j < this._neural_network._layer_sizes[i]; j++){
+        for (let i = 1; i < this._neural_network._layerSizes.length; i++){
+            for (let j = 0; j < this._neural_network._layerSizes[i]; j++){
                 const src_neruons = this._getSourceNeurons(i);
                 const dst_neuron = document.getElementById(`layer_${i}_neuron_${j}`);
                 for (let k = 0; k < src_neruons.length; k++){
@@ -464,6 +464,10 @@ class NeuralNetworkElement extends HTMLElement{
     }
 
     setSelectedNeuron(layer_index, neuron_index) {
+        //The input to this function assumes layer 0 is the first hidden layer.
+        //Since we are also showing the input as a "layer", we need to add 1 to the index
+        layer_index++;
+
         const neuron = document.getElementById(`layer_${layer_index}_neuron_${neuron_index}`);
 
         if (this._previous_selected_neuron != undefined){
@@ -489,7 +493,7 @@ class NeuralNetworkElement extends HTMLElement{
         const i = parseInt(split[1])
         const j = parseInt(split[3])
         
-        if (this._neural_network._layers[i - 1].values[j] === undefined){
+        if (this._neural_network._layers[i - 1]._out[j] === undefined){
             return;
         }
 
@@ -544,24 +548,104 @@ box.style.borderStyle = 'dashed';
 const single_step_button = document.getElementById('single_step_button');
 single_step_button.addEventListener('click', (event) => {
 
+    neural_network._onStepComplete = () => {
+        console.log('STEP COMPLETE: ', neural_network._stepIndex);
+
+        //Update neuron labels to reflect current network state
+        neural_network_element._updateLabels();
+
+        //Update step counter
+        const STEP_COUNT = neural_network._getMaxSubSteps(neural_network._stepIndex[0]);
+        sub_step_label.innerHTML = `Step ${neural_network._stepIndex[1]} / ${STEP_COUNT}`;
+
+        neural_network_element._calculation_details_div.innerHTML = '';
+
+        //Show calculation details
+        if (neural_network._stepIndex[0] == 0){
+
+            //Update step label
+            current_step_label.innerHTML = 'Feed Forward';
+           
+            //Determine which neuron is being worked on so we can highlight it
+            const determineNeuronFromStepId = function (stepId) {
+                const target = stepId[1] - 1;
+                let value = -1;
+                for (let i = 0; i < neural_network._layers.length; i++){
+                    for (let j = 0; j < neural_network._layers[i]._size; j++){
+                        value++;
+                        if (value == target){
+                            return [i, j];
+                        }
+                    }
+                }
+                return null;
+            };
+
+            //Determine neuron position
+            const NEURON_POSITION = determineNeuronFromStepId(neural_network._stepIndex);
+            const LAYER_INDEX = NEURON_POSITION[0];
+            const NEURON_INDEX = NEURON_POSITION[1];
+
+            //Highlight current neuron
+            neural_network_element.setSelectedNeuron(LAYER_INDEX, NEURON_INDEX);
+
+            const GENERAL_EQUATION_STRING = '\\(net^i_j = \\sum\\limits_{k = 0}^{N^i - 1} (a^{(i - 1)}_{k}w^i_{jk}) + b^i_{j}\\)';
+            let general_equation_expanded_string = '\\(net^i_j = ';
+            let equation_string = `\\(net^${LAYER_INDEX}_${NEURON_INDEX} = `;
+
+            for (let k = 0; k < neural_network._layers[LAYER_INDEX]._inputSize; k++){
+                let activation_term_string;
+                let input;
+                if (LAYER_INDEX == 0){
+                    activation_term_string = `I_${k}`
+                    input = neural_network._input[k];
+                }else{
+                    input = neural_network._layers[LAYER_INDEX - 1]._out[k];
+                    activation_term_string = `a^${LAYER_INDEX - 1}_${k}`;
+                }
+                general_equation_expanded_string += `${activation_term_string}w^${LAYER_INDEX}_{(${NEURON_INDEX})(${k})} + `;
+                equation_string += `(${format(input, 4)} \\times ${format(neural_network._layers[LAYER_INDEX]._weights[NEURON_INDEX][k], 4)}) + `;
+            }
+            general_equation_expanded_string += `b^${LAYER_INDEX}_${NEURON_INDEX}\\)`;
+            equation_string += `${format(neural_network._layers[LAYER_INDEX]._biases[NEURON_INDEX], 4)}\\)`;
+
+            const appendEquation = (equation_string) => {
+                const div = document.createElement('div');
+                div.style.display = 'block';
+                div.style.fontSize = '1.4em';
+                div.style.margin = '16px 0px 16px 0px';
+                div.innerHTML = equation_string;
+                neural_network_element._calculation_details_div.appendChild(div);
+            }
+
+            //Show general equation
+            appendEquation(GENERAL_EQUATION_STRING);
+
+            //Show expanded form
+            appendEquation(general_equation_expanded_string);
+
+            //Show filled form
+            appendEquation(equation_string);
+
+            appendEquation(`\\(net^${LAYER_INDEX}_${NEURON_INDEX} = ${format(neural_network._layers[LAYER_INDEX]._out[NEURON_INDEX], 8)}\\)`);
+
+        }else if (neural_network._stepIndex[0] == 1){
+
+            //Update step label
+            current_step_label.innerHTML = 'Calculate Error';
+        }
+
+        MathJax.typeset();
+    }
+
     neural_network.train([0.05, 0.10], [0.01, 0.99]).then(() => {
         console.log('DONE');
     });
 
     return;
 
-    //const step = neural_network.step();
-    neural_network_element._updateLabels();
-
-    const i = neural_network._layer_index + 1;
-    const j = neural_network._neuron_index;
-    console.log(i, j);
-
-    sub_step_label.innerHTML = `Step ${step[1]} / ${step[2]}`;
-
     if (step[0] == 'feed_forward'){
-        current_step_label.innerHTML = 'Feed Forward';
-        neural_network_element.setSelectedNeuron(i, j);
+       
 
         neural_network_element._calculation_details_div.innerHTML = `To calculate the value of this neuron, we first need to multiply each input by the weight of its connection, then add the bias.`;
 
@@ -707,14 +791,14 @@ single_step_button.addEventListener('click', (event) => {
             
             let equation_string = '\\(z = ';
             let derivative_string = `\\(\\frac{\\partial z}{\\partial w_${neural_network._weight_index}} = `;
-            for (let k = 0; k < neural_network._layer_sizes[i - 1]; k++){
+            for (let k = 0; k < neural_network._layerSizes[i - 1]; k++){
                 equation_string += `(w_${k} \\times a_${k}) + `;
                 if (k == neural_network._weight_index){
                     derivative_string += `(1 \\times a_${k}) + `;
                 }else{
                     derivative_string += `(0 \\times 0) + `;
                 }
-                if (k == neural_network._layer_sizes[i - 1] - 1){
+                if (k == neural_network._layerSizes[i - 1] - 1){
                     equation_string += 'b\\)';
                     derivative_string += '0\\)';
                 }
