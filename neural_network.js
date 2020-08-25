@@ -69,6 +69,9 @@ class NeuralNetwork{
             console.log('step complete: ', this._stepIndex);
         };
         this._stepIndex = [0, 0, 0];
+
+        //used only by step visualizer
+        this._error = [];
     }
 
     setWeights(weights, biases){
@@ -127,7 +130,9 @@ class NeuralNetwork{
      * @param {*} output 
      */
     async train(input, target_output){
+        //These 2 are used only by the step visualizer
         this._input = input;
+        this._targetOutput = target_output;
 
         const result = await this._feedForward(input);
         //console.log('OUTPUT: ', result);
@@ -135,6 +140,10 @@ class NeuralNetwork{
         //Calculate error
         const error = await this._calculate_error(target_output);
         const loss = error.reduce((a, b) => a + b, 0);
+
+        //This is used only by the step visualizer
+        this._loss = loss;
+
         this._stepIndex[1] += 1;
         console.log('loss: ', loss);
         await waitStep(this._onStepComplete);
@@ -142,7 +151,7 @@ class NeuralNetwork{
         this.summary();
 
         this._target_output = target_output;
-        const changes = this._backProp(input);
+        const changes = await this._backProp(input);
         //console.log('CHANGES: ', changes);
 
         //Update weights
@@ -181,23 +190,30 @@ class NeuralNetwork{
         return d * dsig(this._layers[i]._net[j]);
     }
 
-    _backProp(input){
-        const changes = new Map();
-        for (let i = this._layerCount - 1; i >= 0; i--){
-            for (let j = 0; j < this._layers[i]._size; j++){
-                const d = this._der(i, j);
-                for (let k = 0; k < this._layers[i]._inputSize; k++){
-                    let a = 0;
-                    if (i == 0){
-                        a = input[k];
-                    }else{
-                        a = this._layers[i - 1]._out[k];
+    async _backProp(input){
+        this._stepIndex = [2, 0];
+        return new Promise(async resolve => {
+            const changes = new Map();
+            for (let i = this._layerCount - 1; i >= 0; i--){
+                for (let j = 0; j < this._layers[i]._size; j++){
+                    const d = this._der(i, j);
+                    for (let k = 0; k < this._layers[i]._inputSize; k++){
+                        let a = 0;
+                        if (i == 0){
+                            a = input[k];
+                        }else{
+                            a = this._layers[i - 1]._out[k];
+                        }
+                        changes.set(`${i}_${j}_${k}`, this._learningRate * -(d * a));
+
+                        this._stepIndex[1] += 1;
+                        await waitStep(this._onStepComplete);
                     }
-                    changes.set(`${i}_${j}_${k}`, this._learningRate * -(d * a));
                 }
             }
-        }
-        return changes;
+            resolve(changes);
+        });
+        
     }
 
     async _calculate_error(target_output){
@@ -206,6 +222,10 @@ class NeuralNetwork{
             const error = [];
             for (let i = 0; i < this._layerSizes[this._layerCount]; i++){
                 error[i] = 0.5 * Math.pow(target_output[i] - this._layers[this._layerCount - 1]._out[i], 2);
+
+                //this is used only by the step visualizer
+                this._error[i] = error[i];
+
                 this._stepIndex[1] += 1;
                 await waitStep(this._onStepComplete);
             }
@@ -234,7 +254,7 @@ class NeuralNetwork{
             sub_step_count += this._layerSizes[this._layerSizes.length - 1] + 1;
         }else if (step_id == 2){ //back prop
             for (let i = 0; i < this._layers.length; i++){
-                sub_step_count += this._layerSizes[i] * this._layers[i].weights.length;
+                sub_step_count += this._layers[i]._size * this._layers[i]._inputSize;
             }
         }
         return sub_step_count

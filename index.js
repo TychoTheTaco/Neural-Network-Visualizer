@@ -508,6 +508,15 @@ customElements.define('neural-network', NeuralNetworkElement);
 
 const neural_network_element = document.getElementById('neural_network');
 
+function makeDivider(margin = '24px auto 24px auto'){
+    const div = document.createElement('div');
+    div.style.width = '100%';
+    div.style.height = '1px';
+    div.style.backgroundColor = 'rgb(138, 138, 138)';
+    div.style.margin = margin;
+    return div;
+}
+
 let neural_network = new NeuralNetwork([2, 2, 2]);
 neural_network.setWeights([
     [
@@ -550,6 +559,17 @@ single_step_button.addEventListener('click', (event) => {
 
     neural_network._onStepComplete = () => {
         console.log('STEP COMPLETE: ', neural_network._stepIndex);
+        const PRECISION_SHORT = 4;
+        const PRECISION_LONG = 8;
+
+        const appendEquation = (equation_string) => {
+            const div = document.createElement('div');
+            div.style.display = 'block';
+            div.style.fontSize = '1.4em';
+            div.style.margin = '16px 0px 16px 0px';
+            div.innerHTML = equation_string;
+            neural_network_element._calculation_details_div.appendChild(div);
+        }
 
         //Update neuron labels to reflect current network state
         neural_network_element._updateLabels();
@@ -558,6 +578,7 @@ single_step_button.addEventListener('click', (event) => {
         const STEP_COUNT = neural_network._getMaxSubSteps(neural_network._stepIndex[0]);
         sub_step_label.innerHTML = `Step ${neural_network._stepIndex[1]} / ${STEP_COUNT}`;
 
+        //Clear calculation details
         neural_network_element._calculation_details_div.innerHTML = '';
 
         //Show calculation details
@@ -589,7 +610,6 @@ single_step_button.addEventListener('click', (event) => {
             //Highlight current neuron
             neural_network_element.setSelectedNeuron(LAYER_INDEX, NEURON_INDEX);
 
-            const GENERAL_EQUATION_STRING = '\\(net^i_j = \\sum\\limits_{k = 0}^{N^i - 1} (a^{(i - 1)}_{k}w^i_{jk}) + b^i_{j}\\)';
             let general_equation_expanded_string = '\\(net^i_j = ';
             let equation_string = `\\(net^${LAYER_INDEX}_${NEURON_INDEX} = `;
 
@@ -604,35 +624,115 @@ single_step_button.addEventListener('click', (event) => {
                     activation_term_string = `a^${LAYER_INDEX - 1}_${k}`;
                 }
                 general_equation_expanded_string += `${activation_term_string}w^${LAYER_INDEX}_{(${NEURON_INDEX})(${k})} + `;
-                equation_string += `(${format(input, 4)} \\times ${format(neural_network._layers[LAYER_INDEX]._weights[NEURON_INDEX][k], 4)}) + `;
+                equation_string += `(${format(input, PRECISION_SHORT)} \\times ${format(neural_network._layers[LAYER_INDEX]._weights[NEURON_INDEX][k], PRECISION_SHORT)}) + `;
             }
             general_equation_expanded_string += `b^${LAYER_INDEX}_${NEURON_INDEX}\\)`;
-            equation_string += `${format(neural_network._layers[LAYER_INDEX]._biases[NEURON_INDEX], 4)}\\)`;
+            equation_string += `${format(neural_network._layers[LAYER_INDEX]._biases[NEURON_INDEX], PRECISION_SHORT)}\\)`;
 
-            const appendEquation = (equation_string) => {
-                const div = document.createElement('div');
-                div.style.display = 'block';
-                div.style.fontSize = '1.4em';
-                div.style.margin = '16px 0px 16px 0px';
-                div.innerHTML = equation_string;
-                neural_network_element._calculation_details_div.appendChild(div);
-            }
-
-            //Show general equation
-            appendEquation(GENERAL_EQUATION_STRING);
-
-            //Show expanded form
+            //Show equations
+            appendEquation('\\(net^i_j = \\sum\\limits_{k = 0}^{N^i - 1} (a^{(i - 1)}_{k}w^i_{jk}) + b^i_{j}\\)');
             appendEquation(general_equation_expanded_string);
-
-            //Show filled form
             appendEquation(equation_string);
+            appendEquation(`\\(net^${LAYER_INDEX}_${NEURON_INDEX} = ${format(neural_network._layers[LAYER_INDEX]._net[NEURON_INDEX], PRECISION_LONG)}\\)`);
 
-            appendEquation(`\\(net^${LAYER_INDEX}_${NEURON_INDEX} = ${format(neural_network._layers[LAYER_INDEX]._out[NEURON_INDEX], 8)}\\)`);
+            neural_network_element._calculation_details_div.appendChild(makeDivider());
+
+            //Part 2
+            appendEquation('\\(out^i_j = \\sigma(net^i_j)\\)');
+            appendEquation(`\\(out^${LAYER_INDEX}_${NEURON_INDEX} = \\sigma(${format(neural_network._layers[LAYER_INDEX]._net[NEURON_INDEX], PRECISION_LONG)})\\)`);
+            appendEquation(`\\(out^${LAYER_INDEX}_${NEURON_INDEX} = ${format(neural_network._layers[LAYER_INDEX]._out[NEURON_INDEX], PRECISION_LONG)}\\)`);
 
         }else if (neural_network._stepIndex[0] == 1){
 
+            const determineNeuronFromStepId = function (stepIndex) {
+                if (stepIndex[1] == STEP_COUNT){
+                    return [neural_network._layers.length - 1, -1];
+                }
+                return [neural_network._layers.length - 1, stepIndex[1] - 1];
+            };
+
+            //Determine neuron position
+            const NEURON_POSITION = determineNeuronFromStepId(neural_network._stepIndex);
+            const LAYER_INDEX = NEURON_POSITION[0];
+            const NEURON_INDEX = NEURON_POSITION[1];
+
             //Update step label
             current_step_label.innerHTML = 'Calculate Error';
+
+            //Deselect any highlighted neurons
+            neural_network_element.setSelectedNeuron(-1, -1);
+
+            //If this is the last step, we need to sum all the errors
+            if (neural_network._stepIndex[1] == STEP_COUNT){
+                
+                //Draw a box around the output layer and target output
+                const target_output_div = document.getElementById(`target_output_container`);
+                target_output_div.appendChild(box);
+                const neuron = document.getElementById(`layer_${LAYER_INDEX}_neuron_0`);
+                const distance = ((target_output_div.getBoundingClientRect().left + target_output_div.getBoundingClientRect().right) / 2) - ((neuron.getBoundingClientRect().left + neuron.getBoundingClientRect().right) / 2);
+                box.style.height = `${target_output_div.clientHeight + 10}px`;
+                box.style.left = `${target_output_div.getBoundingClientRect().left - (box.clientWidth / 2) + (target_output_div.clientWidth / 2) - parseInt(box.style.borderWidth, 10) - (distance / 2) + box.clientWidth}px`;
+                box.style.top = `${target_output_div.getBoundingClientRect().top - (box.clientHeight / 2) + (target_output_div.clientHeight / 2) - parseInt(box.style.borderWidth, 10)}px`;
+
+                appendEquation(`\\(E = \\sum\\limits_{j = 0}^{n - 1} \\frac{1}{2} (t_j - out^{${LAYER_INDEX}}_j)^2\\)`);
+
+                let generalEquationExpandedString = '\\(E = ';
+                let equationString = '\\(E = ';
+                for (let j = 0; j < neural_network._layers[LAYER_INDEX]._size; j++){
+                    generalEquationExpandedString += `\\frac{1}{2}(t_${j} - a^${LAYER_INDEX}_${j})^2`;
+                    equationString += `\\frac{1}{2}(${format(neural_network._targetOutput[j], PRECISION_SHORT)} - ${format(neural_network._layers[LAYER_INDEX]._out[j], PRECISION_SHORT)})^2`;
+                    if (j != neural_network._layers[LAYER_INDEX]._size - 1){
+                        generalEquationExpandedString += ' + ';
+                        equationString += ' + ';
+                    }
+                }
+                generalEquationExpandedString += '\\)';
+                equationString += '\\)';
+
+                appendEquation(generalEquationExpandedString);
+                appendEquation(equationString);
+                appendEquation(`\\(E = ${format(neural_network._loss, PRECISION_LONG)}\\)`);
+            }else{
+
+                //Draw a box around the current neuron and target output
+                const target_output_div = document.getElementById(`layer_${LAYER_INDEX + 1}_target_output_div_label_${NEURON_INDEX}`);
+                target_output_div.appendChild(box);
+                const neuron = document.getElementById(`layer_${LAYER_INDEX}_neuron_${NEURON_INDEX}`);
+                const distance = ((target_output_div.getBoundingClientRect().left + target_output_div.getBoundingClientRect().right) / 2) - ((neuron.getBoundingClientRect().left + neuron.getBoundingClientRect().right) / 2);
+                box.style.left = `${target_output_div.getBoundingClientRect().left - (box.clientWidth / 2) + (target_output_div.clientWidth / 2) - parseInt(box.style.borderWidth, 10) - (distance / 2) + box.clientWidth}px`;
+                box.style.top = `${target_output_div.getBoundingClientRect().top - (box.clientHeight / 2) + (target_output_div.clientHeight / 2) - parseInt(box.style.borderWidth, 10)}px`;
+
+                appendEquation(`\\(e_j = \\frac{1}{2} (t_j - a_j)^2\\)`);
+                appendEquation(`\\(e_${NEURON_INDEX} = \\frac{1}{2} (t_${NEURON_INDEX} - a_${NEURON_INDEX})^2\\)`);
+                appendEquation(`\\(e_${NEURON_INDEX} = \\frac{1}{2} (${format(neural_network._target_output[NEURON_INDEX], PRECISION_SHORT)} - ${format(neural_network._layers[LAYER_INDEX]._out[NEURON_INDEX], PRECISION_SHORT)})^2\\)`);
+                appendEquation(`\\(e_${NEURON_INDEX} = ${format(neural_network._error[NEURON_INDEX], PRECISION_LONG)}\\)`);
+            }
+        }else if (neural_network._stepIndex[0] == 2){
+
+            //Hide the box from the previous step
+            box.style.display = 'none';
+
+            const determineNeuronFromStepId = function (stepIndex) {
+                const target = stepIndex[1] - 1;
+                let value = -1;
+                for (let i = 0; i < neural_network._layers.length; i++){
+                    for (let j = 0; j < neural_network._layers[i]._size; j++){
+                        value++;
+                        if (value == target){
+                            return [i, j];
+                        }
+                    }
+                }
+                return null;
+            };
+
+            //Determine neuron position
+            const NEURON_POSITION = determineNeuronFromStepId(neural_network._stepIndex);
+            const LAYER_INDEX = NEURON_POSITION[0];
+            const NEURON_INDEX = NEURON_POSITION[1];
+
+            //Update step label
+            current_step_label.innerHTML = 'Backpropagation';
         }
 
         MathJax.typeset();
@@ -644,119 +744,13 @@ single_step_button.addEventListener('click', (event) => {
 
     return;
 
-    if (step[0] == 'feed_forward'){
-       
-
-        neural_network_element._calculation_details_div.innerHTML = `To calculate the value of this neuron, we first need to multiply each input by the weight of its connection, then add the bias.`;
-
-        //Step 1
-        let step_1_general_equation_string = '\\(z = \\sum\\limits_{i = 0}^{n - 1} (a_iw_i) + b_i\\)';
-        let step_1_equation_string = '';
-        let step_1_result = neural_network._layers[i - 1].values[j];
-        const src_neurons = neural_network_element._getSourceNeurons(i);
-        for (let k = 0; k < src_neurons.length; k++){
-            let inputs;
-            if (i == 1){
-                inputs = neural_network._inputs;
-            }else{
-                inputs = neural_network._layers[i - 2].out;
-            }
-            const a = inputs[k];
-            const w = neural_network._layers[i - 1]._weights[j][k];
-            step_1_equation_string += `${format(a, 6)} \\times ${format(w, 6)} + `;
-        }
-        step_1_equation_string += `${format(neural_network._layers[i - 1].biases[j], 6)}\\) `
-        step_1_equation_string = `\\(${format(step_1_result, 6)} = ` + step_1_equation_string;
-
-        neural_network_element._calculation_details_div.appendChild(
-            createTable([
-                [step_1_general_equation_string, step_1_equation_string]
-            ], true)
-        );
-
-        neural_network_element._calculation_details_div.innerHTML += 'Next, we apply the activation funciton. In this case we are using the sigmoid function.'
-      
-        //Step 2
-        let step_2_general_equation_string = '\\(a = \\sigma(z)\\)';
-        let step_2_result = neural_network._layers[i - 1]._out[j];
-        let step_2_equation_string = `\\(${format(step_2_result, 6)} = \\sigma(${format(step_1_result, 6)})\\)`;
-
-        neural_network_element._calculation_details_div.appendChild(
-            createTable([
-                [step_2_general_equation_string, step_2_equation_string]
-            ], true)
-        );
-
-        MathJax.typeset();
-    }else if (step[0] == 'calculate_loss' || step[0] == 'sum_losses'){
-        neural_network_element.setSelectedNeuron(-1, -1);
-        current_step_label.innerHTML = 'Calculate Error';
-
-        if (step[0] != 'sum_losses'){
-            //console.log(i, j);
-            const target_output_div = document.getElementById(`layer_${i}_target_output_div_label_${j}`);
-            target_output_div.appendChild(box);
-
-            const neuron = document.getElementById(`layer_${i}_neuron_${j}`);
-            const distance = ((target_output_div.getBoundingClientRect().left + target_output_div.getBoundingClientRect().right) / 2) - ((neuron.getBoundingClientRect().left + neuron.getBoundingClientRect().right) / 2);
-            
-            box.style.left = `${target_output_div.getBoundingClientRect().left - (box.clientWidth / 2) + (target_output_div.clientWidth / 2) - parseInt(box.style.borderWidth, 10) - (distance / 2)}px`;
-            box.style.top = `${target_output_div.getBoundingClientRect().top - (box.clientHeight / 2) + (target_output_div.clientHeight / 2) - parseInt(box.style.borderWidth, 10)}px`;
-        }else{
-            const target_output_div = document.getElementById(`target_output_container`);
-            target_output_div.appendChild(box);
-
-            const neuron = document.getElementById(`layer_${i}_neuron_0`);
-            const distance = ((target_output_div.getBoundingClientRect().left + target_output_div.getBoundingClientRect().right) / 2) - ((neuron.getBoundingClientRect().left + neuron.getBoundingClientRect().right) / 2);
-            
-            box.style.height = `${target_output_div.clientHeight + 10}px`;
-            box.style.left = `${target_output_div.getBoundingClientRect().left - (box.clientWidth / 2) + (target_output_div.clientWidth / 2) - parseInt(box.style.borderWidth, 10) - (distance / 2)}px`;
-            box.style.top = `${target_output_div.getBoundingClientRect().top - (box.clientHeight / 2) + (target_output_div.clientHeight / 2) - parseInt(box.style.borderWidth, 10)}px`;
-        }
-
-        const rows = [['Generic Equation', 'Plugged In']];
-        for (let k = 0; k < j + 1; k++){
-            let equation_string = `\\(${format(neural_network._last_layer_losses[k], 6)} = `;
-            equation_string += `${0.5}(${format(neural_network._target_output[k], 6)} - ${format(neural_network._layers[neural_network._layers.length - 1]._out[k], 6)})^2`;
-            equation_string += `\\)`
-            rows.push([`\\(e = \\frac{1}{2} (t - a)^2\\)`, equation_string]);
-        }
-
-        if (step[0] == 'sum_losses'){
-            let equation_string = `\\(${format(neural_network._loss, 6)} = `;
-            for (let k = 0; k < j + 1; k++){
-                equation_string += `${format(neural_network._last_layer_losses[k], 6)}`;
-                if (k != j){
-                    equation_string += ' + ';
-                }
-            }
-            equation_string += `\\)`
-            rows.push(['\\(E = \\sum\\limits_{i = 1}^n \\frac{1}{2} (t_i - a_i)^2\\)', equation_string]);
-
-            neural_network_element._calculation_details_div.innerHTML = `The total cost of our neural network is simply the summation of the individual errors.`;
-            neural_network_element._calculation_details_div.appendChild(
-                createTable([
-                    ['\\(E = \\sum\\limits_{i = 1}^n \\frac{1}{2} (t_i - a_i)^2\\)', equation_string]
-                ], true)
-            );
-        }else{
-            neural_network_element._calculation_details_div.innerHTML = `To calculate the error of this neuron, we will use the equation for mean squared error.`;
-            neural_network_element._calculation_details_div.appendChild(
-                createTable([
-                    rows[j + 1]
-                ], true)
-            );
-        }
-
-        MathJax.typeset();
-    }else if (step[0] == 'back_prop'){
+   if (step[0] == 'back_prop'){
         //neural_network_element.setSelectedNeuron(i, j);
         neural_network_element._deselectAll();
         neural_network_element.selectNeuronAndWeights(i, j, [neural_network_element._neural_network._weight_index]);
-        current_step_label.innerHTML = 'Backpropagation';
+
         neural_network_element._calculation_details_div.innerHTML = 'Backpropagation is the process of adjusting the weights and biases of each neuron in an attempt to lower the total error, or cost, of our neural network. To do this, we need to calculate the gradient of the cost function with respect to the output of each neuron in the last layer.';
 
-        box.style.display = 'none';
 
         if (i == neural_network._layers.length){
             const t_i = format(neural_network._target_output[j], 6);
