@@ -196,18 +196,17 @@ class NeuralNetwork {
     _ders(i, j){
         let string = '';
         if (i === this._layers.length - 1){
-            //string += `dT[${i}, ${j}]`;
-            string += `\\frac{\\partial{E}}{\\partial{E_${j}}} \\times \\frac{\\partial{E_${j}}}{\\partial{out^${i}_${j}}} \\times \\frac{\\partial{out^${i}_${j}}}{\\partial{net^${i}_${j}}}`;
+            string += `\\frac{\\partial{E}}{\\partial{E_${j}}} \\cdot \\frac{\\partial{E_${j}}}{\\partial{out^${i}_${j}}} \\cdot \\frac{\\partial{out^${i}_${j}}}{\\partial{net^${i}_${j}}}`;
             return string;
         }
-        string += '(';
+        string += '\\left(';
         for (let k = 0; k < this._layers[i + 1]._size; k++){
-            string += `(` + this._ders(i + 1, k) + `) \\times \\frac{\\partial{net^${i + 1}_${k}}}{\\partial{out^${i}_${j}}} \\times \\frac{\\partial{out^${i}_${j}}}{\\partial{net^${i}_${j}}}`;
+            string += `\\left(` + this._ders(i + 1, k) + `\\right) \\cdot \\frac{\\partial{net^${i + 1}_${k}}}{\\partial{out^${i}_${j}}}`;
             if (k !== this._layers[i + 1]._size - 1){
                 string += ' + ';
             }
         }
-        string += `)`;
+        string += `\\right) \\cdot \\frac{\\partial{out^${i}_${j}}}{\\partial{net^${i}_${j}}}`;
         return string;
     }
 
@@ -228,7 +227,7 @@ class NeuralNetwork {
                         changes.set(`${i}_${j}_${k}`, this._learningRate * -(d * a));
 
                         //this._derstring = this._ders(i, j) + ` * dsig(net[${i}, ${j}])`;
-                        this._derstring = this._ders(i, j) + ` \\times \\frac{\\partial{net^${i}_${j}}}{\\partial{w^${i}_{(${j})(${k})}}}`;
+                        this._derstring = this._ders(i, j) + ` \\cdot \\frac{\\partial{net^${i}_${j}}}{\\partial{w^${i}_{(${j})(${k})}}}`;
                         this._stepIndex[1] += 1;
                         await waitStep(this._onStepComplete);
                     }
