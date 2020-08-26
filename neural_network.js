@@ -163,7 +163,7 @@ class NeuralNetwork {
             }
         }
 
-        this._stepIndex = [3, 0];
+        this._stepIndex = [3, 1];
         this._onStepComplete();
 
         this.summary();
@@ -274,6 +274,8 @@ class NeuralNetwork {
             for (let i = 0; i < this._layers.length; i++) {
                 sub_step_count += this._layers[i]._size * this._layers[i]._inputSize;
             }
+        }else if (step_id == 3){
+            return 1;
         }
         return sub_step_count
     }

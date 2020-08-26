@@ -724,13 +724,21 @@ single_step_button.addEventListener('click', (event) => {
             neural_network_element._deselectAll();
             neural_network_element.selectNeuronAndWeights(LAYER_INDEX + 1, NEURON_INDEX, [WEIGHT_INDEX]);
 
-            appendEquation(`\\(\\frac{\\partial E}{w^${LAYER_INDEX}_{(${NEURON_INDEX})(${WEIGHT_INDEX})}} = ` + neural_network._derstring + '\\)');
+            appendEquation(`\\(\\frac{\\partial E}{\\partial w^${LAYER_INDEX}_{(${NEURON_INDEX})(${WEIGHT_INDEX})}} = ` + neural_network._derstring + '\\)');
+        }else if (neural_network._stepIndex[0] === 3){
+
+            //Remove selections from previous step
+            neural_network_element._deselectAll();
+
+            //Update step label
+            current_step_label.innerHTML = 'Update weights';
+
+            appendEquation(`\\( {w\\prime}^i_{(j)(k)} = w^i_{(j)(k)} + \\left( R \\cdot \\frac{\\partial E}{\\partial w^i_{(j)(k)}} \\right) \\)`)
+
         }else{
 
             //Update step label
             current_step_label.innerHTML = 'Finished';
-
-            neural_network_element._deselectAll();
         }
 
         MathJax.typeset();
@@ -740,109 +748,6 @@ single_step_button.addEventListener('click', (event) => {
         console.log('DONE');
     });
 
-  /*  if (step[0] == 'back_prop') {
-        //neural_network_element.setSelectedNeuron(i, j);
-        neural_network_element._deselectAll();
-        neural_network_element.selectNeuronAndWeights(i, j, [neural_network_element._neural_network._weight_index]);
-
-        neural_network_element._calculation_details_div.innerHTML = 'Backpropagation is the process of adjusting the weights and biases of each neuron in an attempt to lower the total error, or cost, of our neural network. To do this, we need to calculate the gradient of the cost function with respect to the output of each neuron in the last layer.';
-
-
-        if (i == neural_network._layers.length) {
-            const t_i = format(neural_network._target_output[j], 6);
-            const a_i = neural_network._layers[neural_network._layers.length - 1]._out[j];
-            const f_a_i = format(a_i, 6);
-            const d_c_d_a = -2 * (neural_network._target_output[j] - neural_network._layers[neural_network._layers.length - 1]._out[j]);
-            const f_d_c_d_a = format(d_c_d_a, 6);
-
-            neural_network_element._calculation_details_div.appendChild(
-                createTable([
-                    [`\\(E_i = (t_i - a_i)^2\\)`],
-                    [`\\(\\frac{\\partial E}{\\partial a_i} = 2(t_i - a_i) \\times {-1}\\)`],
-                    [`\\(\\frac{\\partial E}{\\partial a_i} = -2(t_i - a_i)\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = -2(${t_i} - ${f_a_i})\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = ${f_d_c_d_a}\\)`]
-                ], true, '25%')
-            );
-
-            neural_network_element._calculation_details_div.innerHTML += `Now we know how much \\(c_${j}\\) changes when we change \\(a_${j}\\). Unfortunately, we can't directly change \\(a_${j}\\). Instead, we can only change the values that influence it. The only value that influences \\(a_${j}\\) is the input to our activation function, \\(z_${j}\\).`;
-
-            const z_i = format(neural_network._layers[neural_network._layers.length - 1].values[j], 6);
-            const d_a_d_z = a_i * (1 - a_i);
-            const f_d_a_d_z = format(d_a_d_z, 6);
-
-            neural_network_element._calculation_details_div.appendChild(
-                createTable([
-                    [`\\(a_i = \\sigma(z_i)\\)`, `\\(${f_a_i} = \\sigma(${z_i})\\)`],
-                    [`\\(\\frac{\\partial a_i}{\\partial z_i} = \\sigma(z_i)(1 - \\sigma(z_i))\\)`],
-                    [`\\(\\frac{\\partial a_i}{\\partial z_i} = a_i(1 - a_i)\\)`, `\\(\\frac{\\partial a_${j}}{\\partial z_${j}} = ${f_a_i}(1 - ${f_a_i})\\)`, `\\(\\frac{\\partial a_${j}}{\\partial z_${j}} = ${f_d_a_d_z}\\)`]
-                ], true, '25%')
-            );
-
-            neural_network_element._calculation_details_div.innerHTML += `Now we know how much \\(a_${j}\\) changes when we change \\(z_${j}\\). But again, we can't directly change \\(z_${j}\\). Instead, we can only change the weights and bias that influence it.`;
-
-            let equation_string = '\\(z = ';
-            let derivative_string = `\\(\\frac{\\partial z}{\\partial w_${neural_network._weight_index}} = `;
-            for (let k = 0; k < neural_network._layerSizes[i - 1]; k++) {
-                equation_string += `(w_${k} \\times a_${k}) + `;
-                if (k == neural_network._weight_index) {
-                    derivative_string += `(1 \\times a_${k}) + `;
-                } else {
-                    derivative_string += `(0 \\times 0) + `;
-                }
-                if (k == neural_network._layerSizes[i - 1] - 1) {
-                    equation_string += 'b\\)';
-                    derivative_string += '0\\)';
-                }
-            }
-
-            const table = createTable([
-                [`\\(z = \\sum\\limits_{i = 0}^{n-1}(w_i \\times a_i) + b_i\\)`],
-                [equation_string]
-            ], true, '25%', false);
-            table.style.width = '100%';
-            neural_network_element._calculation_details_div.appendChild(table);
-
-            const p_a_i = neural_network._layers[neural_network._layer_index - 1]._out[neural_network._weight_index];
-            const f_p_a_i = format(p_a_i, 6);
-
-            const table_1 = createTable([
-                [derivative_string],
-                [`\\(\\frac{\\partial z}{\\partial w_${neural_network._weight_index}} = a_${neural_network._weight_index}\\)`, `\\(\\frac{\\partial z}{\\partial w_${neural_network._weight_index}} = ${f_p_a_i}\\)`]
-            ], true, '25%', false);
-            table_1.style.width = '100%';
-            neural_network_element._calculation_details_div.appendChild(table_1);
-
-            neural_network_element._calculation_details_div.innerHTML += `Now we multiply these values together.`;
-
-            const d_c_d_w = d_c_d_a * d_a_d_z * p_a_i;
-            const f_d_c_d_w = format(d_c_d_w, 6);
-            const table_2 = createTable([
-                [`\\(\\frac{\\partial c}{\\partial w} = \\frac{\\partial c}{\\partial a} \\times \\frac{\\partial a}{\\partial z} \\times \\frac{\\partial z}{\\partial w}\\)`],
-                [`\\(\\frac{\\partial c}{\\partial w} = ${f_d_c_d_a} \\times ${f_d_a_d_z} \\times ${f_p_a_i} = ${f_d_c_d_w}\\)`]
-            ], true, '', false);
-            table_2.style.width = '100%';
-            neural_network_element._calculation_details_div.appendChild(table_2);
-
-            neural_network_element._calculation_details_div.innerHTML += `Finally, to compute the new value of w:`;
-
-            const w = neural_network._layers[i - 1]._weights[j][neural_network._weight_index];
-            const w_prime = w - (neural_network._learning_rate * d_c_d_w);
-            const table_3 = createTable([
-                [`\\(w\\prime = w - (R \\times \\frac{\\partial c}{\\partial w})\\)`, `\\(${format(w_prime, 6)} = ${format(w, 6)} - (${neural_network._learning_rate} \\times ${f_d_c_d_w})\\)`]
-            ], true, '25%');
-            neural_network_element._calculation_details_div.appendChild(table_3);
-        } else if (i == neural_network._layers.length - 1) {
-            neural_network_element._calculation_details_div.appendChild(
-                createTable([
-                    [`\\(\\frac{\\partial L}{\\partial a_i} = \\frac{\\partial C}{\\partial a_${0}} + \\frac{\\partial c}{\\partial a_${1}}\\)`],
-                    [`\\(c_i = (t_i - a_i)^2\\)`],
-                    [`\\(\\frac{\\partial c}{\\partial a_i} = 2(t_i - a_i) \\times {-1}\\)`],
-                    [`\\(\\frac{\\partial c}{\\partial a_i} = -2(t_i - a_i)\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = -2(${7} - ${7})\\)`, `\\(\\frac{\\partial c}{\\partial a_${j}} = ${7}\\)`]
-                ], true, '25%')
-            );
-        }
-
-        MathJax.typeset();
-    }*/
 });
 
 const train_all_button = document.getElementById('train_all_button');
@@ -881,68 +786,3 @@ random_configuration_button.addEventListener('click', (event) => {
 
     neural_network_element.setNeuralNetwork(neural_network);
 });
-
-
-class DrawCanvas {
-
-    constructor(canvas) {
-        this._canvas = canvas;
-
-        this._ctx = input_canvas.getContext('2d');
-        this._ctx.lineWidth = 10;
-        this._ctx.lineCap = 'round';
-        this._ctx.strokeStyle = 'white';
-
-        this._isMouseDown = false;
-        this._last_x = 0;
-        this._last_y = 0;
-
-        canvas.addEventListener('mousemove', (event) => {
-            if (this._isMouseDown) {
-                this._ctx.beginPath();
-                this._ctx.moveTo(this._last_x, this._last_y);
-                const bounds = event.target.getBoundingClientRect();
-                this._last_x = event.clientX - bounds.left;
-                this._last_y = event.clientY - bounds.top;
-                this._ctx.lineTo(this._last_x, this._last_y);
-                this._ctx.stroke();
-            }
-        });
-
-        canvas.addEventListener('mousedown', (event) => {
-            this._isMouseDown = true;
-
-            const bounds = event.target.getBoundingClientRect();
-            this._last_x = event.clientX - bounds.left;
-            this._last_y = event.clientY - bounds.top;
-            this._ctx.moveTo(this._last_x, this._last_y);
-        })
-
-        canvas.addEventListener('mouseup', (event) => {
-            this._isMouseDown = false;
-
-            //const image_data = this._ctx.getImageData(0, 0, this._canvas.width, this._canvas.height);
-        })
-
-        canvas.addEventListener('mouseleave', (event) => {
-            this._isMouseDown = false;
-        })
-
-        this._clear_canvas_button = document.getElementById('clear_canvas_button');
-        this._clear_canvas_button.addEventListener('click', (event) => {
-            this.clear();
-        })
-    }
-
-    clear() {
-        this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
-    }
-}
-
-/*
-[E] Error for one neuron
-[c] loss of one training example
-[C] Cost of entire training set
-
-[A] Activation value of a neuron
-*/
