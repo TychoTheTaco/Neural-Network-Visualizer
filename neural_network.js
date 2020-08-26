@@ -1,16 +1,16 @@
 'use strict';
 
-function sig(x){
+function sig(x) {
     return 1 / (1 + Math.pow(Math.E, -x));
 }
 
-function dsig(x){
+function dsig(x) {
     return sig(x) * (1 - sig(x));
 }
 
-class Layer{
+class Layer {
 
-    constructor(inputSize, size){
+    constructor(inputSize, size) {
         this._inputSize = inputSize;
         this._size = size;
         this._weights = [];
@@ -20,26 +20,26 @@ class Layer{
         this._out = [];
     }
 
-    initializeRandomly(){
-        for (let i = 0; i < this._size; i++){
+    initializeRandomly() {
+        for (let i = 0; i < this._size; i++) {
             this._weights[i] = [];
             this._biases[i] = 1;
-            for (let j = 0; j < this._inputSize; j++){
+            for (let j = 0; j < this._inputSize; j++) {
                 this._weights[i][j] = 1;
             }
         }
     }
 
-    initialize(weights, biases){
+    initialize(weights, biases) {
         this._weights = weights;
         this._biases = biases;
     }
 
-    async feed(input){
+    async feed(input) {
         return new Promise(async resolve => {
-            for (let i = 0; i < this._size; i++){
+            for (let i = 0; i < this._size; i++) {
                 this._net[i] = this._biases[i];
-                for (let j = 0; j < this._inputSize; j++)  {
+                for (let j = 0; j < this._inputSize; j++) {
                     this._net[i] += this._weights[i][j] * input[j];
                 }
                 this._out[i] = sig(this._net[i]);
@@ -51,15 +51,15 @@ class Layer{
     }
 }
 
-class NeuralNetwork{
+class NeuralNetwork {
 
-    constructor(layerSizes){
+    constructor(layerSizes) {
         this._layerSizes = layerSizes;
 
         this._learningRate = 0.5;
 
         this._layers = [];
-        for (let i = 1; i < layerSizes.length; i++){
+        for (let i = 1; i < layerSizes.length; i++) {
             this._layers.push(new Layer(layerSizes[i - 1], layerSizes[i]));
             this._layers[i - 1]._network = this;
         }
@@ -74,13 +74,13 @@ class NeuralNetwork{
         this._error = [];
     }
 
-    setWeights(weights, biases){
-        for (let i = 0; i < this._layerCount; i++){
+    setWeights(weights, biases) {
+        for (let i = 0; i < this._layerCount; i++) {
             this._layers[i].initialize(weights[i], biases[i]);
         }
     }
 
-    initializeFromFile(file){
+    initializeFromFile(file) {
         return fetch(file).then(response => response.text());
     }
 
@@ -103,33 +103,33 @@ class NeuralNetwork{
         this.initialize(w, b);
     } */
 
-    process(input){
+    process(input) {
         this.reset();
         this.setInputs(input);
-        for (let i = 0; i < this._getMaxSubSteps('feed_forward'); i++){
-           this.step();
+        for (let i = 0; i < this._getMaxSubSteps('feed_forward'); i++) {
+            this.step();
         }
         return this._output;
     }
 
-    setInputs(inputs){
+    setInputs(inputs) {
         this._inputs = inputs;
     }
 
-    setTargetOutput(target_output){
+    setTargetOutput(target_output) {
         this._target_output = target_output;
     }
 
-    getStepId(){
+    getStepId() {
         return this._next_step_id;
     }
 
     /**
      * Train this model on a single training example.
-     * @param {*} input 
-     * @param {*} output 
+     * @param {*} input
+     * @param {*} output
      */
-    async train(input, target_output){
+    async train(input, target_output) {
         //These 2 are used only by the step visualizer
         this._input = input;
         this._targetOutput = target_output;
@@ -155,23 +155,26 @@ class NeuralNetwork{
         //console.log('CHANGES: ', changes);
 
         //Update weights
-        for (let i = 0; i < this._layers.length; i++){
-            for (let j = 0; j < this._layers[i]._size; j++){
-                for (let k = 0; k < this._layers[i]._inputSize; k++){
+        for (let i = 0; i < this._layers.length; i++) {
+            for (let j = 0; j < this._layers[i]._size; j++) {
+                for (let k = 0; k < this._layers[i]._inputSize; k++) {
                     this._layers[i]._weights[j][k] += changes.get(`${i}_${j}_${k}`);
                 }
             }
         }
 
+        this._stepIndex = [3, 0];
+        this._onStepComplete();
+
         this.summary();
     }
 
-    summary(){
-        for (let i = 0; i < this._layers.length; i++){
+    summary() {
+        for (let i = 0; i < this._layers.length; i++) {
             console.log(`[Layer ${i}]`);
-            for (let j = 0; j < this._layers[i]._size; j++){
+            for (let j = 0; j < this._layers[i]._size; j++) {
                 let weightString = '';
-                for (let k = 0; k < this._layers[i]._inputSize; k++){
+                for (let k = 0; k < this._layers[i]._inputSize; k++) {
                     weightString += this._layers[i]._weights[j][k].toFixed(9) + " ";
                 }
                 console.log(`[Neuron ${j}]: ${weightString}`);
@@ -179,33 +182,53 @@ class NeuralNetwork{
         }
     }
 
-    _der(i, j){
-        if (i == this._layerCount - 1){
+    _der(i, j) {
+        if (i === this._layerCount - 1) {
             return -(this._target_output[j] - this._layers[i]._out[j]) * dsig(this._layers[i]._net[j]);
         }
         let d = 0;
-        for (let k = 0; k < this._layers[i + 1]._size; k++){
+        for (let k = 0; k < this._layers[i + 1]._size; k++) {
             d += this._der(i + 1, k) * this._layers[i + 1]._weights[k][j];
         }
         return d * dsig(this._layers[i]._net[j]);
     }
 
-    async _backProp(input){
+    _ders(i, j){
+        let string = '';
+        if (i === this._layers.length - 1){
+            //string += `dT[${i}, ${j}]`;
+            string += `\\frac{\\partial{E}}{\\partial{E_${j}}} \\times \\frac{\\partial{E_${j}}}{\\partial{out^${i}_${j}}} \\times \\frac{\\partial{out^${i}_${j}}}{\\partial{net^${i}_${j}}}`;
+            return string;
+        }
+        string += '(';
+        for (let k = 0; k < this._layers[i + 1]._size; k++){
+            string += `(` + this._ders(i + 1, k) + `) \\times \\frac{\\partial{net^${i + 1}_${k}}}{\\partial{out^${i}_${j}}} \\times \\frac{\\partial{out^${i}_${j}}}{\\partial{net^${i}_${j}}}`;
+            if (k !== this._layers[i + 1]._size - 1){
+                string += ' + ';
+            }
+        }
+        string += `)`;
+        return string;
+    }
+
+    async _backProp(input) {
         this._stepIndex = [2, 0];
         return new Promise(async resolve => {
             const changes = new Map();
-            for (let i = this._layerCount - 1; i >= 0; i--){
-                for (let j = 0; j < this._layers[i]._size; j++){
+            for (let i = this._layerCount - 1; i >= 0; i--) {
+                for (let j = 0; j < this._layers[i]._size; j++) {
                     const d = this._der(i, j);
-                    for (let k = 0; k < this._layers[i]._inputSize; k++){
+                    for (let k = 0; k < this._layers[i]._inputSize; k++) {
                         let a = 0;
-                        if (i == 0){
+                        if (i === 0) {
                             a = input[k];
-                        }else{
+                        } else {
                             a = this._layers[i - 1]._out[k];
                         }
                         changes.set(`${i}_${j}_${k}`, this._learningRate * -(d * a));
 
+                        //this._derstring = this._ders(i, j) + ` * dsig(net[${i}, ${j}])`;
+                        this._derstring = this._ders(i, j) + ` \\times \\frac{\\partial{net^${i}_${j}}}{\\partial{w^${i}_{(${j})(${k})}}}`;
                         this._stepIndex[1] += 1;
                         await waitStep(this._onStepComplete);
                     }
@@ -213,47 +236,43 @@ class NeuralNetwork{
             }
             resolve(changes);
         });
-        
+
     }
 
-    async _calculate_error(target_output){
+    _calculate_error(target_output) {
         this._stepIndex = [1, 0];
-        return new Promise(async resolve => {
-            const error = [];
-            for (let i = 0; i < this._layerSizes[this._layerCount]; i++){
-                error[i] = 0.5 * Math.pow(target_output[i] - this._layers[this._layerCount - 1]._out[i], 2);
+        const error = [];
+        for (let i = 0; i < this._layerSizes[this._layerCount]; i++) {
+            error[i] = 0.5 * Math.pow(target_output[i] - this._layers[this._layerCount - 1]._out[i], 2);
 
-                //this is used only by the step visualizer
-                this._error[i] = error[i];
-
-                this._stepIndex[1] += 1;
-                await waitStep(this._onStepComplete);
-            }
-            resolve(error);
-        })
+            //this is used only by the step visualizer
+            this._error[i] = error[i];
+        }
+        return error;
     }
 
-    async _feedForward(input){
+    async _feedForward(input) {
         this._stepIndex = [0, 0];
         return new Promise(async (resolve) => {
             let result = await this._layers[0].feed(input);
-            for (let i = 1; i < this._layerCount; i++){
+            for (let i = 1; i < this._layerCount; i++) {
                 result = await this._layers[i].feed(this._layers[i - 1]._out);
             }
             resolve(result[1]);
         });
     }
 
-    _getMaxSubSteps(step_id){
+    _getMaxSubSteps(step_id) {
         let sub_step_count = 0;
-        if (step_id == 0){ //feed forward
-            for (let i = 1; i < this._layerSizes.length; i++){
+        if (step_id == 0) { //feed forward
+            for (let i = 1; i < this._layerSizes.length; i++) {
                 sub_step_count += this._layerSizes[i];
             }
-        }else if (step_id == 1){ //calculate loss
-            sub_step_count += this._layerSizes[this._layerSizes.length - 1] + 1;
-        }else if (step_id == 2){ //back prop
-            for (let i = 0; i < this._layers.length; i++){
+        } else if (step_id == 1) { //calculate loss
+            //sub_step_count += this._layerSizes[this._layerSizes.length - 1] + 1;
+            return 1;
+        } else if (step_id == 2) { //back prop
+            for (let i = 0; i < this._layers.length; i++) {
                 sub_step_count += this._layers[i]._size * this._layers[i]._inputSize;
             }
         }
@@ -261,7 +280,7 @@ class NeuralNetwork{
     }
 }
 
-async function waitStep(callback){
+async function waitStep(callback) {
     callback();
     console.log('Waiting...');
     return new Promise((resolve) => {
