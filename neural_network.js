@@ -183,31 +183,32 @@ class NeuralNetwork {
     }
 
     _der(i, j) {
+        let derivative = 0;
+        let generalEquationString = '';
+        let equationString = '';
         if (i === this._layerCount - 1) {
-            return -(this._target_output[j] - this._layers[i]._out[j]) * dsig(this._layers[i]._net[j]);
-        }
-        let d = 0;
-        for (let k = 0; k < this._layers[i + 1]._size; k++) {
-            d += this._der(i + 1, k) * this._layers[i + 1]._weights[k][j];
-        }
-        return d * dsig(this._layers[i]._net[j]);
-    }
-
-    _ders(i, j){
-        let string = '';
-        if (i === this._layers.length - 1){
-            string += `\\frac{\\partial{E}}{\\partial{E_${j}}} \\cdot \\frac{\\partial{E_${j}}}{\\partial{out^${i}_${j}}} \\cdot \\frac{\\partial{out^${i}_${j}}}{\\partial{net^${i}_${j}}}`;
-            return string;
-        }
-        string += '\\left(';
-        for (let k = 0; k < this._layers[i + 1]._size; k++){
-            string += `\\left(` + this._ders(i + 1, k) + `\\right) \\cdot \\frac{\\partial{net^${i + 1}_${k}}}{\\partial{out^${i}_${j}}}`;
-            if (k !== this._layers[i + 1]._size - 1){
-                string += ' + ';
+            derivative = -(this._target_output[j] - this._layers[i]._out[j]);
+            generalEquationString += `\\frac{\\partial{E}}{\\partial{E_${j}}} \\cdot \\frac{\\partial{E_${j}}}{\\partial{out^${i}_${j}}}`;
+            equationString += `-\\left( ${this._target_output[j]} - ${this._layers[i]._out[j]} \\right)`;
+        }else{
+            generalEquationString += '\\left(';
+            equationString += '\\left(';
+            for (let k = 0; k < this._layers[i + 1]._size; k++) {
+                const d = this._der(i + 1, k);
+                derivative += d[0] * this._layers[i + 1]._weights[k][j];
+                generalEquationString += `\\left(` + d[1] + `\\right) \\cdot \\frac{\\partial{net^${i + 1}_${k}}}{\\partial{out^${i}_${j}}}`;
+                equationString += `\\left(` + d[2] + `\\right) \\cdot ${this._layers[i + 1]._weights[k][j]}`;
+                if (k !== this._layers[i + 1]._size - 1){
+                    generalEquationString += ' + ';
+                    equationString += ' + ';
+                }
             }
+            generalEquationString += '\\right) ';
+            equationString += '\\right) ';
         }
-        string += `\\right) \\cdot \\frac{\\partial{out^${i}_${j}}}{\\partial{net^${i}_${j}}}`;
-        return string;
+        generalEquationString += `\\cdot \\frac{\\partial{out^${i}_${j}}}{\\partial{net^${i}_${j}}}`;
+        equationString += `\\cdot ${dsig(this._layers[i]._net[j])}`;
+        return [derivative * dsig(this._layers[i]._net[j]), generalEquationString, equationString];
     }
 
     async _backProp(input) {
@@ -224,10 +225,11 @@ class NeuralNetwork {
                         } else {
                             a = this._layers[i - 1]._out[k];
                         }
-                        changes.set(`${i}_${j}_${k}`, this._learningRate * -(d * a));
+                        changes.set(`${i}_${j}_${k}`, this._learningRate * -(d[0] * a));
 
-                        //this._derstring = this._ders(i, j) + ` * dsig(net[${i}, ${j}])`;
-                        this._derstring = this._ders(i, j) + ` \\cdot \\frac{\\partial{net^${i}_${j}}}{\\partial{w^${i}_{(${j})(${k})}}}`;
+                        //this._derstring = this._ders(i, j) + ` \\cdot \\frac{\\partial{net^${i}_${j}}}{\\partial{w^${i}_{(${j})(${k})}}}`;
+                        this._derstring = d[1] + ` \\cdot \\frac{\\partial{net^${i}_${j}}}{\\partial{w^${i}_{(${j})(${k})}}}`;
+                        this._derivativeEquationString = d[2] + ` \\cdot ${a}`;
                         this._stepIndex[1] += 1;
                         await waitStep(this._onStepComplete);
                     }

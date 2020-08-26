@@ -725,6 +725,12 @@ single_step_button.addEventListener('click', (event) => {
             neural_network_element.selectNeuronAndWeights(LAYER_INDEX + 1, NEURON_INDEX, [WEIGHT_INDEX]);
 
             appendEquation(`\\(\\frac{\\partial E}{\\partial w^${LAYER_INDEX}_{(${NEURON_INDEX})(${WEIGHT_INDEX})}} = ` + neural_network._derstring + '\\)');
+
+            let formattedDerivativeEquationString = neural_network._derivativeEquationString;
+            const regex = new RegExp('(?:\\d*\\.)?\\d+', 'g');
+            const matches = formattedDerivativeEquationString.matchAll(regex);
+            console.log(...matches);
+            appendEquation(`\\(${neural_network._derivativeEquationString}\\)`);
         }else if (neural_network._stepIndex[0] === 3){
 
             //Remove selections from previous step
