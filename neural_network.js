@@ -25,7 +25,7 @@ class Layer {
             this._weights[i] = [];
             this._biases[i] = 1;
             for (let j = 0; j < this._inputSize; j++) {
-                this._weights[i][j] = 1;
+                this._weights[i][j] = (Math.random() * 2) - 1;
             }
         }
     }
@@ -65,12 +65,11 @@ class NeuralNetwork {
         }
         this._layerCount = this._layers.length;
 
+        //used only by step visualizer
         this._onStepComplete = () => {
             console.log('step complete: ', this._stepIndex);
         };
         this._stepIndex = [0, 0, 0];
-
-        //used only by step visualizer
         this._error = [];
     }
 
@@ -84,50 +83,16 @@ class NeuralNetwork {
         return fetch(file).then(response => response.text());
     }
 
-    /* initializeRandomly(){
-        const w = [];
-        const b = [];
-        for (let i = 1; i < this._layer_sizes.length; i++){
-            const weights = [];
-            const biases = []
-            for (let j = 0; j < this._layer_sizes[i]; j++){
-                weights[j] = [];
-                biases[j] = Math.random();
-                for (let k = 0; k < this._layer_sizes[i - 1]; k++){
-                    weights[j].push(Math.random() * 2 - 1);
-                }
-            }
-            w.push(weights);
-            b.push(biases);
+    initializeRandomly(){
+        for (let i = 0; i < this._layerCount; i++) {
+            this._layers[i].initializeRandomly();
         }
-        this.initialize(w, b);
-    } */
-
-    process(input) {
-        this.reset();
-        this.setInputs(input);
-        for (let i = 0; i < this._getMaxSubSteps('feed_forward'); i++) {
-            this.step();
-        }
-        return this._output;
-    }
-
-    setInputs(inputs) {
-        this._inputs = inputs;
-    }
-
-    setTargetOutput(target_output) {
-        this._target_output = target_output;
-    }
-
-    getStepId() {
-        return this._next_step_id;
     }
 
     /**
      * Train this model on a single training example.
      * @param {*} input
-     * @param {*} output
+     * @param {*} target_output
      */
     async train(input, target_output) {
         //These 2 are used only by the step visualizer
@@ -283,13 +248,39 @@ class NeuralNetwork {
     }
 }
 
+let stepper = null;
+function setStepper(s){
+    stepper = s;
+}
+
 async function waitStep(callback) {
     callback();
     console.log('Waiting...');
     return new Promise((resolve) => {
-        const single_example_button = document.getElementById('single_example_button');
-        single_example_button.onclick = (event) => {
+        //const single_example_button = document.getElementById('single_example_button');
+        stepper.onclick = (event) => {
             resolve();
         };
     });
+}
+
+class Stepper{
+
+    constructor() {
+
+    }
+
+    async wait(){
+        //wait until a call to step is made
+        console.log('Waiting...');
+        return new Promise(resolve => {
+            this._resolve = resolve; //wrong this
+        });
+    }
+
+    step(){
+        //proceed to next step
+        console.log(this._resolve);
+        this._resolve();
+    }
 }
