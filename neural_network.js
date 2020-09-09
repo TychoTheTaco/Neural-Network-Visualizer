@@ -71,6 +71,8 @@ class NeuralNetwork {
         };
         this._stepIndex = [0, 0, 0];
         this._error = [];
+        this._changes = new Map(); //Changes to be applied to old weights
+        this._derivatives = new Map(); //Derivative of each weight (doesn't include learning rate)
     }
 
     setWeights(weights, biases) {
@@ -154,7 +156,8 @@ class NeuralNetwork {
         if (i === this._layerCount - 1) {
             derivative = -(this._target_output[j] - this._layers[i]._out[j]);
             generalEquationString += `\\frac{\\partial{E}}{\\partial{E_${j}}} \\cdot \\frac{\\partial{E_${j}}}{\\partial{out^${i}_${j}}}`;
-            equationString += `-\\left( ${this._target_output[j]} - ${this._layers[i]._out[j]} \\right)`;
+            //equationString += `-\\left( ${this._target_output[j]} - ${this._layers[i]._out[j]} \\right)`;
+            equationString += `-1 \\cdot ${this._target_output[j] - this._layers[i]._out[j]}`;
         }else{
             generalEquationString += '\\left(';
             equationString += '\\left(';
@@ -179,7 +182,13 @@ class NeuralNetwork {
     async _backProp(input) {
         this._stepIndex = [2, 0];
         return new Promise(async resolve => {
+
+            //Changes to be applied to old weights
             const changes = new Map();
+
+            //Derivative of each weight (doesn't include learning rate)
+            const derivatives = new Map();
+
             for (let i = this._layerCount - 1; i >= 0; i--) {
                 for (let j = 0; j < this._layers[i]._size; j++) {
                     const d = this._der(i, j);
@@ -190,7 +199,8 @@ class NeuralNetwork {
                         } else {
                             a = this._layers[i - 1]._out[k];
                         }
-                        changes.set(`${i}_${j}_${k}`, this._learningRate * -(d[0] * a));
+                        this._derivatives.set(`${i}_${j}_${k}`, d[0] * a);
+                        this._changes.set(`${i}_${j}_${k}`, this._learningRate * -(d[0] * a));
 
                         //this._derstring = this._ders(i, j) + ` \\cdot \\frac{\\partial{net^${i}_${j}}}{\\partial{w^${i}_{(${j})(${k})}}}`;
                         this._derstring = d[1] + ` \\cdot \\frac{\\partial{net^${i}_${j}}}{\\partial{w^${i}_{(${j})(${k})}}}`;

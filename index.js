@@ -470,6 +470,94 @@ class NeuralNetworkElement extends HTMLElement {
 
 customElements.define('neural-network', NeuralNetworkElement);
 
+class NeuralNetworkDisplay extends HTMLElement{
+
+    constructor() {
+        super();
+
+        this._neural_network = null;
+
+        this.style.display = 'block';
+        this.style.textAlign = 'center';
+
+        //Main canvas
+        this._canvas = document.createElement('canvas');
+        this._canvas.width = 1000;
+        this._canvas.height = 200;
+        this.appendChild(this._canvas);
+
+        this._draw();
+    }
+
+    setNeuralNetwork(neural_network){
+        this._neural_network = neural_network;
+        this._draw();
+    }
+
+    _draw(){
+        const ctx = this._canvas.getContext('2d');
+
+        //Clear the canvas
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
+
+        //If there is no neural network attached, drawing is done
+        if (this._neural_network === null){
+            return;
+        }
+
+        //Constants
+        const LAYER_SPACING = 300;
+        const NEURON_SPACING = 75;
+        const NEURON_RADIUS = 25;
+
+        ctx.translate(NEURON_RADIUS, NEURON_RADIUS);
+
+        //Draw network
+        for (let i = 0; i < this._neural_network._layerSizes.length; i++){
+
+            //Add space between layers
+            if (i > 0){
+                ctx.translate(LAYER_SPACING, 0);
+            }
+
+            //Save current canvas transform
+            ctx.save();
+
+            //Draw neurons
+            for (let j = 0; j < this._neural_network._layerSizes[i]; j++){
+
+                //Add space between neurons
+                if (j > 0){
+                    ctx.translate(0, NEURON_SPACING);
+                }
+
+                //Draw connections to previous layer
+                if (i < this._neural_network._layerSizes.length - 1){
+                    for (let k = 0; k < this._neural_network._layerSizes[i + 1]; k++){
+                        ctx.strokeStyle = 'gray';
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(LAYER_SPACING, (k - j) * NEURON_SPACING);
+                        ctx.stroke();
+                    }
+                }
+
+                //Draw neuron background
+                ctx.fillStyle = 'blue';
+                ctx.beginPath();
+                ctx.arc(0, 0, NEURON_RADIUS, 0, 2 * Math.PI, false);
+                ctx.fill();
+            }
+
+            //Restore canvas transform
+            ctx.restore();
+        }
+    }
+}
+
+customElements.define('neural-network-display', NeuralNetworkDisplay);
+
 const neural_network_element = document.getElementById('neural_network');
 
 function makeDivider(margin = '24px auto 24px auto') {
@@ -504,6 +592,7 @@ neural_network._input = [0.05, 0.01];
 neural_network._targetOutput = [0.01, 0.99];
 
 neural_network_element.setNeuralNetwork(neural_network);
+document.getElementById('neural_network_display').setNeuralNetwork(neural_network);
 
 const current_step_label = document.getElementById('current_step_label');
 const sub_step_label = document.getElementById('sub_step_label');
@@ -695,11 +784,23 @@ single_step_button.addEventListener('click', (event) => {
 
                 appendEquation(`\\(\\frac{\\partial E}{\\partial w^${LAYER_INDEX}_{(${NEURON_INDEX})(${WEIGHT_INDEX})}} = ` + neural_network._derstring + '\\)');
 
-                let formattedDerivativeEquationString = neural_network._derivativeEquationString;
-                const regex = new RegExp('(?:\\d*\\.)?\\d+', 'g');
-                const matches = formattedDerivativeEquationString.matchAll(regex);
-                console.log(...matches);
-                appendEquation(`\\(${neural_network._derivativeEquationString}\\)`);
+                //Replace numbers in the equation string with rounded numbers to make it easier to read
+                const split = neural_network._derivativeEquationString.split(new RegExp('((?:\\d*\\.)?\\d+)', 'g'));
+                let formattedDerivativeEquationString = `\\(\\frac{\\partial E}{\\partial w^${LAYER_INDEX}_{(${NEURON_INDEX})(${WEIGHT_INDEX})}} = `;
+                split.forEach((value) => {
+                    const number = parseFloat(value);
+                    if (!isNaN(number)){
+                        formattedDerivativeEquationString += format(number, PRECISION_SHORT);
+                    }else{
+                        formattedDerivativeEquationString += value;
+                    }
+                })
+                formattedDerivativeEquationString += '\\)';
+
+                appendEquation(formattedDerivativeEquationString);
+
+                const result = format(neural_network._changes.get(`${LAYER_INDEX}_${NEURON_INDEX}_${WEIGHT_INDEX}`), PRECISION_LONG);
+                appendEquation(`\\(\\frac{\\partial E}{\\partial w^${LAYER_INDEX}_{(${NEURON_INDEX})(${WEIGHT_INDEX})}} = ${result}\\)`)
             }else if (neural_network._stepIndex[0] === 3){
 
                 //Remove selections from previous step
@@ -708,7 +809,7 @@ single_step_button.addEventListener('click', (event) => {
                 //Update step label
                 current_step_label.innerHTML = 'Update weights';
 
-                appendEquation(`\\( {w\\prime}^i_{(j)(k)} = w^i_{(j)(k)} + \\left( R \\cdot \\frac{\\partial E}{\\partial w^i_{(j)(k)}} \\right) \\)`)
+                appendEquation(`\\( {w\\prime}^i_{(j)(k)} = w^i_{(j)(k)} + \\left( R \\cdot \\frac{\\partial E}{\\partial w^i_{(j)(k)}} \\right) \\)`);
 
             }else{
 
