@@ -472,10 +472,15 @@ customElements.define('neural-network', NeuralNetworkElement);
 
 class NeuralNetworkDisplay extends HTMLElement{
 
+    static INPUT_LAYER_COLOR = '#2196F3';
+    static HIDDEN_LAYER_COLOR = '#3F51B5';
+    static OUTPUT_LAYER_COLOR = '#673AB7';
+
     constructor() {
         super();
 
         this._neural_network = null;
+        this._selected_neuron = [-1, -1];
 
         this.style.display = 'block';
         this.style.textAlign = 'center';
@@ -494,10 +499,16 @@ class NeuralNetworkDisplay extends HTMLElement{
         this._draw();
     }
 
+    selectNeuron(layerIndex, neuronIndex){
+        this._selected_neuron = [layerIndex + 1, neuronIndex];
+        this._draw();
+    }
+
     _draw(){
         const ctx = this._canvas.getContext('2d');
 
         //Clear the canvas
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
 
@@ -507,11 +518,20 @@ class NeuralNetworkDisplay extends HTMLElement{
         }
 
         //Constants
-        const LAYER_SPACING = 300;
+        const LAYER_SPACING = 250;
         const NEURON_SPACING = 75;
-        const NEURON_RADIUS = 25;
+        const NEURON_RADIUS = 23;
+        const TOP_MARGIN = 50;
+        const TARGET_OUTPUT_SPACING = 100;
+        const NUMBER_TEXT_STYLE = {'fillStyle': 'whitesmoke', 'font': '12pt Arial'}
+        const TITLE_TEXT_STYLE = {'fillStyle': 'whitesmoke', 'font': '12pt Arial'}
 
-        ctx.translate(NEURON_RADIUS, NEURON_RADIUS);
+        //Center the drawing in the canvas
+        const WIDTH = ((this._neural_network._layerSizes.length - 1) * LAYER_SPACING) + TARGET_OUTPUT_SPACING;
+        ctx.translate(0, NEURON_RADIUS + TOP_MARGIN);
+        ctx.translate(-WIDTH / 2, 0);
+        ctx.translate(this._canvas.width / 2, 0);
+        //ctx.translate(0.5, 0.5);
 
         //Draw network
         for (let i = 0; i < this._neural_network._layerSizes.length; i++){
@@ -524,6 +544,14 @@ class NeuralNetworkDisplay extends HTMLElement{
             //Save current canvas transform
             ctx.save();
 
+            //Draw layer title
+            const layerTitle = `Layer ${i}`;
+            ctx.fillStyle = TITLE_TEXT_STYLE.fillStyle
+            ctx.font = TITLE_TEXT_STYLE.font;
+            ctx.textBaseline = 'bottom';
+            ctx.textAlign = 'center';
+            ctx.fillText(layerTitle, 0, -NEURON_RADIUS - 16);
+
             //Draw neurons
             for (let j = 0; j < this._neural_network._layerSizes[i]; j++){
 
@@ -532,7 +560,7 @@ class NeuralNetworkDisplay extends HTMLElement{
                     ctx.translate(0, NEURON_SPACING);
                 }
 
-                //Draw connections to previous layer
+                //Draw connections to next layer
                 if (i < this._neural_network._layerSizes.length - 1){
                     for (let k = 0; k < this._neural_network._layerSizes[i + 1]; k++){
                         ctx.strokeStyle = 'gray';
@@ -544,14 +572,67 @@ class NeuralNetworkDisplay extends HTMLElement{
                 }
 
                 //Draw neuron background
-                ctx.fillStyle = 'blue';
+                if (i === 0){
+                    ctx.fillStyle = NeuralNetworkDisplay.INPUT_LAYER_COLOR;
+                }else if (i === this._neural_network._layerSizes.length - 1){
+                    ctx.fillStyle = NeuralNetworkDisplay.OUTPUT_LAYER_COLOR;
+                }else{
+                    ctx.fillStyle = NeuralNetworkDisplay.HIDDEN_LAYER_COLOR;
+                }
                 ctx.beginPath();
                 ctx.arc(0, 0, NEURON_RADIUS, 0, 2 * Math.PI, false);
                 ctx.fill();
+
+                //Draw neuron outline
+                if (this._selected_neuron[0] === i && this._selected_neuron[1] === j){
+                    ctx.strokeStyle = 'white';
+                    ctx.beginPath()
+                    ctx.arc(0, 0, NEURON_RADIUS, 0, 2 * Math.PI, false);
+                    ctx.stroke();
+                }
+
+                //Draw neuron value
+                ctx.fillStyle = NUMBER_TEXT_STYLE.fillStyle
+                ctx.font = NUMBER_TEXT_STYLE.font;
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center'
+                let value = '?';
+                if (i === 0){
+                    value = `${this._neural_network._input[j]}`;
+                }
+                ctx.fillText(value, 0, 0);
             }
 
             //Restore canvas transform
             ctx.restore();
+        }
+
+        //Draw target output
+        ctx.translate(TARGET_OUTPUT_SPACING + NEURON_RADIUS, 0);
+        ctx.save();
+
+        //Draw layer title
+        const layerTitle = 'Target Output';
+        ctx.fillStyle = TITLE_TEXT_STYLE.fillStyle
+        ctx.font = TITLE_TEXT_STYLE.font;
+        ctx.textBaseline = 'bottom';
+        ctx.textAlign = 'center';
+        ctx.fillText(layerTitle, 0, -NEURON_RADIUS - 16);
+
+        //Draw target output
+        for (let j = 0; j < this._neural_network._layerSizes[this._neural_network._layerSizes.length - 1]; j++){
+
+            //Add space between outputs
+            if (j > 0){
+                ctx.translate(0, NEURON_SPACING);
+            }
+
+            //Draw target output
+            ctx.fillStyle = NUMBER_TEXT_STYLE.fillStyle
+            ctx.font = NUMBER_TEXT_STYLE.font;
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center'
+            ctx.fillText(`${this._neural_network._targetOutput[j]}`, 0, 0);
         }
     }
 }
@@ -667,6 +748,7 @@ single_step_button.addEventListener('click', (event) => {
 
                 //Highlight current neuron
                 neural_network_element.setSelectedNeuron(LAYER_INDEX, NEURON_INDEX);
+                document.getElementById('neural_network_display').selectNeuron(LAYER_INDEX, NEURON_INDEX);
 
                 let general_equation_expanded_string = '\\(net^i_j = ';
                 let equation_string = `\\(net^${LAYER_INDEX}_${NEURON_INDEX} = `;
